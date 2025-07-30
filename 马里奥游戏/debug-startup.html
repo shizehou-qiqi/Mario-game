@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马里奥游戏启动调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .debug-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .log-section {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .error { color: #ff6b6b; }
+        .success { color: #4ecdc4; }
+        .warning { color: #ffa726; }
+        .info { color: #42a5f5; }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.loading {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🎮 马里奥游戏启动调试器</h1>
+        
+        <div id="status" class="status loading">
+            正在检查游戏组件...
+        </div>
+        
+        <div class="log-section" id="debugLog">
+            启动调试器...<br>
+        </div>
+        
+        <div>
+            <button onclick="checkAllComponents()">🔍 检查所有组件</button>
+            <button onclick="testGameInitialization()">🚀 测试游戏初始化</button>
+            <button onclick="testButtonClick()">🖱️ 测试按钮点击</button>
+            <button onclick="clearLog()">🗑️ 清空日志</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h3>快速测试按钮：</h3>
+            <button id="testStartButton" style="background: #FF6B35;">🚀 模拟开始游戏</button>
+        </div>
+    </div>
+
+    <!-- 加载所有游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        let debugLog = document.getElementById('debugLog');
+        let statusDiv = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            debugLog.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span><br>`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function clearLog() {
+            debugLog.innerHTML = '日志已清空<br>';
+        }
+        
+        function updateStatus(message, type = 'loading') {
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+        
+        function checkAllComponents() {
+            log('🔍 开始检查所有游戏组件...', 'info');
+            
+            const requiredClasses = [
+                'Vector2D', 'Physics', 'SpriteManager', 'GameObject',
+                'EventManager', 'AudioManager', 'ParticleSystem',
+                'InputManager', 'Platform', 'Enemy', 'Collectible',
+                'Level', 'ScoreManager', 'HUDManager', 'Player',
+                'GameEngine', 'GameStateManager'
+            ];
+            
+            const requiredFunctions = [
+                'initGame'
+            ];
+            
+            let missingComponents = [];
+            let loadedComponents = [];
+            
+            // 检查类
+            requiredClasses.forEach(className => {
+                if (typeof window[className] !== 'undefined') {
+                    log(`✅ ${className} 类已加载`, 'success');
+                    loadedComponents.push(className);
+                } else {
+                    log(`❌ ${className} 类未找到`, 'error');
+                    missingComponents.push(className);
+                }
+            });
+            
+            // 检查函数
+            requiredFunctions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    log(`✅ ${funcName} 函数已加载`, 'success');
+                    loadedComponents.push(funcName);
+                } else {
+                    log(`❌ ${funcName} 函数未找到`, 'error');
+                    missingComponents.push(funcName);
+                }
+            });
+            
+            // 总结
+            log(`📊 组件检查完成: ${loadedComponents.length}/${requiredClasses.length + requiredFunctions.length} 已加载`, 'info');
+            
+            if (missingComponents.length === 0) {
+                updateStatus('✅ 所有组件已正确加载', 'success');
+                log('🎉 所有必需组件都已加载！可以尝试初始化游戏', 'success');
+            } else {
+                updateStatus(`❌ 缺少 ${missingComponents.length} 个组件`, 'error');
+                log(`⚠️ 缺少组件: ${missingComponents.join(', ')}`, 'warning');
+            }
+        }
+        
+        function testGameInitialization() {
+            log('🚀 测试游戏初始化...', 'info');
+            
+            try {
+                if (typeof initGame === 'function') {
+                    log('📞 调用 initGame() 函数...', 'info');
+                    initGame();
+                    log('✅ initGame() 调用成功', 'success');
+                } else {
+                    log('❌ initGame 函数不存在', 'error');
+                }
+            } catch (error) {
+                log(`❌ 游戏初始化失败: ${error.message}`, 'error');
+                log(`📋 错误堆栈: ${error.stack}`, 'error');
+            }
+        }
+        
+        function testButtonClick() {
+            log('🖱️ 测试开始按钮点击...', 'info');
+            
+            try {
+                // 检查游戏状态管理器
+                if (typeof window.gameStateManager !== 'undefined') {
+                    log('✅ gameStateManager 存在', 'success');
+                    
+                    // 模拟点击开始按钮
+                    log('🎯 模拟调用 gameStateManager.startGame()...', 'info');
+                    window.gameStateManager.startGame();
+                    log('✅ startGame() 调用成功', 'success');
+                } else {
+                    log('❌ gameStateManager 不存在', 'error');
+                }
+            } catch (error) {
+                log(`❌ 按钮点击测试失败: ${error.message}`, 'error');
+                log(`📋 错误堆栈: ${error.stack}`, 'error');
+            }
+        }
+        
+        // 页面加载完成后自动检查
+        document.addEventListener('DOMContentLoaded', function() {
+            log('📄 页面DOM加载完成', 'success');
+            
+            // 延迟检查，确保所有脚本都加载完成
+            setTimeout(() => {
+                checkAllComponents();
+            }, 1000);
+        });
+        
+        // 监听所有JavaScript错误
+        window.addEventListener('error', function(event) {
+            log(`💥 JavaScript错误: ${event.error.message}`, 'error');
+            log(`📁 文件: ${event.filename}:${event.lineno}`, 'error');
+            if (event.error.stack) {
+                log(`📋 堆栈: ${event.error.stack}`, 'error');
+            }
+            updateStatus('❌ 发生JavaScript错误', 'error');
+        });
+        
+        // 测试按钮点击事件
+        document.getElementById('testStartButton').addEventListener('click', function() {
+            log('🖱️ 测试开始按钮被点击！', 'info');
+            testButtonClick();
+        });
+        
+        log('🔧 调试器初始化完成', 'success');
+    </script>
+</body>
+</html>

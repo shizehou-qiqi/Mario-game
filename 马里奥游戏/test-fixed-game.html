@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复后的马里奥游戏测试</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 10000;
+        }
+        .debug-panel h4 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        .debug-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #111;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-error { color: #ff6b6b; }
+        .log-success { color: #4ecdc4; }
+        .log-warning { color: #ffa726; }
+        .log-info { color: #42a5f5; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>修复后的马里奥游戏</h1>
+            <div class="game-info">
+                <span id="score">分数: 0</span>
+                <span id="lives">生命: 3</span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="game-controls">
+            <p>控制说明：</p>
+            <p>← → 方向键移动，空格键或↑跳跃</p>
+        </div>
+        
+        <div class="game-menu" id="gameMenu" style="display: block; z-index: 1000;">
+            <h2>🎮 修复后的马里奥游戏</h2>
+            <button id="startButton" style="background: #FF6B35; color: white; padding: 15px 30px; font-size: 1.2em; border: none; border-radius: 5px; cursor: pointer;">🚀 开始游戏</button>
+            <button id="pauseButton" style="display: none;">暂停</button>
+            <p style="margin-top: 15px; color: #666;">点击开始按钮开始游戏！</p>
+            <p style="margin-top: 10px; color: #999; font-size: 0.9em;">✨ 已修复启动卡住问题</p>
+        </div>
+        
+        <div class="game-over" id="gameOver" style="display: none;">
+            <h2>游戏结束</h2>
+            <p>最终分数: <span id="finalScore">0</span></p>
+            <button id="restartButton">重新开始</button>
+            <button class="menu-button">返回菜单</button>
+        </div>
+        
+        <div class="victory-screen" id="victoryScreen" style="display: none;">
+            <h2>恭喜通关！</h2>
+            <p>关卡分数: <span id="victoryScore">0</span></p>
+            <button id="nextLevelButton">下一关</button>
+            <button class="menu-button">返回菜单</button>
+        </div>
+        
+        <div class="pause-overlay" id="pauseOverlay" style="display: none;">
+            <h2>游戏暂停</h2>
+            <button id="continueButton">继续游戏</button>
+            <button class="menu-button">返回菜单</button>
+        </div>
+    </div>
+    
+    <!-- 调试面板 -->
+    <div class="debug-panel">
+        <h4>🔧 调试信息</h4>
+        <div class="debug-log" id="debugLog">
+            等待游戏初始化...<br>
+        </div>
+        <button onclick="clearDebugLog()" style="background: #666; color: white; border: none; padding: 3px 6px; border-radius: 2px; font-size: 10px; margin-top: 5px;">清空</button>
+    </div>
+    
+    <!-- 加载所有游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        // 调试日志系统
+        let debugLogDiv = document.getElementById('debugLog');
+        
+        function debugLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = `log-${type}`;
+            debugLogDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span><br>`;
+            debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
+        }
+        
+        function clearDebugLog() {
+            debugLogDiv.innerHTML = '日志已清空<br>';
+        }
+        
+        // 重写console方法以显示在调试面板
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            debugLog(args.join(' '), 'info');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            debugLog(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            debugLog(args.join(' '), 'warning');
+        };
+        
+        // 监听JavaScript错误
+        window.addEventListener('error', function(event) {
+            debugLog(`💥 错误: ${event.error.message}`, 'error');
+            debugLog(`📁 文件: ${event.filename}:${event.lineno}`, 'error');
+        });
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('📄 DOM加载完成', 'success');
+            
+            // 延迟检查，确保所有脚本都加载完成
+            setTimeout(() => {
+                debugLog('🔍 检查游戏组件...', 'info');
+                
+                // 检查关键组件
+                const components = ['initGame', 'GameEngine', 'GameStateManager', 'EventManager'];
+                let allLoaded = true;
+                
+                components.forEach(component => {
+                    if (typeof window[component] !== 'undefined') {
+                        debugLog(`✅ ${component} 已加载`, 'success');
+                    } else {
+                        debugLog(`❌ ${component} 未找到`, 'error');
+                        allLoaded = false;
+                    }
+                });
+                
+                if (allLoaded) {
+                    debugLog('🎉 所有组件检查通过！', 'success');
+                    debugLog('🚀 开始初始化游戏...', 'info');
+                    
+                    try {
+                        initGame();
+                        debugLog('✅ 游戏初始化成功！', 'success');
+                    } catch (error) {
+                        debugLog(`❌ 游戏初始化失败: ${error.message}`, 'error');
+                    }
+                } else {
+                    debugLog('⚠️ 部分组件缺失，游戏可能无法正常工作', 'warning');
+                }
+            }, 1000);
+        });
+        
+        debugLog('🔧 调试系统初始化完成', 'success');
+    </script>
+</body>
+</html>

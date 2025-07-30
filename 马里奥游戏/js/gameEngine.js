@@ -152,9 +152,18 @@ class GameEngine {
         this.accumulator += this.deltaTime;
         
         // 固定时间步长更新（确保物理计算的一致性）
-        while (this.accumulator >= this.frameInterval) {
+        // 🔧 修复：添加最大更新次数限制，防止无限循环
+        let maxUpdates = 5; // 最多连续更新5次
+        while (this.accumulator >= this.frameInterval && maxUpdates > 0) {
             this.update(this.frameInterval / 1000); // 转换为秒
             this.accumulator -= this.frameInterval;
+            maxUpdates--;
+        }
+
+        // 如果累积时间过大，重置以避免螺旋死亡
+        if (this.accumulator > this.frameInterval * 5) {
+            console.warn('GameEngine: 累积时间过大，重置accumulator');
+            this.accumulator = 0;
         }
         
         // 渲染（使用插值以获得平滑的视觉效果）

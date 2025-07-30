@@ -242,16 +242,32 @@ class GameStateManager {
      * 开始游戏
      */
     startGame() {
-        console.log('Starting new game');
-        
-        // 重置游戏数据
-        this.resetGameData();
-        
-        // 通知游戏开始
-        this.triggerCallback('gameStart');
-        
-        // 切换到游戏状态
-        this.setState(GameState.PLAYING);
+        console.log('🚀 开始新游戏...');
+
+        try {
+            // 重置游戏数据
+            console.log('🔄 重置游戏数据...');
+            this.resetGameData();
+
+            // 通知游戏开始
+            console.log('📢 触发游戏开始回调...');
+            this.triggerCallback('gameStart');
+
+            // 切换到游戏状态
+            console.log('🎮 切换到游戏状态...');
+            this.setState(GameState.PLAYING);
+
+            console.log('✅ 游戏启动成功！');
+        } catch (error) {
+            console.error('❌ 游戏启动失败:', error);
+            console.error('📋 错误堆栈:', error.stack);
+
+            // 显示错误信息
+            this.showErrorMessage('游戏启动失败: ' + error.message);
+
+            // 返回菜单状态
+            this.setState(GameState.MENU);
+        }
     }
     
     /**
@@ -728,15 +744,44 @@ class GameStateManager {
     }
     
     /**
+     * 显示错误信息
+     * @param {string} message - 错误信息
+     */
+    showErrorMessage(message) {
+        // 在Canvas上绘制错误信息
+        if (this.context) {
+            this.context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            this.context.fillStyle = '#FF6B6B';
+            this.context.font = 'bold 24px Arial';
+            this.context.textAlign = 'center';
+            this.context.fillText('错误', this.canvas.width / 2, this.canvas.height / 2 - 50);
+
+            this.context.fillStyle = '#FFFFFF';
+            this.context.font = '18px Arial';
+            this.context.fillText(message, this.canvas.width / 2, this.canvas.height / 2);
+
+            this.context.font = '14px Arial';
+            this.context.fillText('请刷新页面重试', this.canvas.width / 2, this.canvas.height / 2 + 50);
+        }
+
+        // 也可以使用alert作为备选
+        setTimeout(() => {
+            alert('游戏错误: ' + message);
+        }, 100);
+    }
+
+    /**
      * 销毁状态管理器
      */
     destroy() {
         // 清理事件监听器
         document.removeEventListener('keydown', this.handleKeyDown);
-        
+
         // 清理回调
         this.stateChangeCallbacks = {};
-        
+
         console.log('GameStateManager destroyed');
     }
 }

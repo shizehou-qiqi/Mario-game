@@ -104,7 +104,9 @@
                     { name: 'initGame', type: 'function' },
                     { name: 'GameEngine', type: 'class' },
                     { name: 'GameStateManager', type: 'class' },
-                    { name: 'EventManager', type: 'class' }
+                    { name: 'EventManager', type: 'class' },
+                    { name: 'Player', type: 'class' },
+                    { name: 'Level', type: 'class' }
                 ];
 
                 let allComponentsLoaded = true;
@@ -126,6 +128,14 @@
                     // 添加额外的点击监听器用于调试
                     startButton.addEventListener('click', function() {
                         console.log('🖱️ 开始按钮被点击！');
+                        
+                        // 确保游戏状态管理器存在
+                        if (window.gameStateManager) {
+                            console.log('🚀 通过状态管理器启动游戏...');
+                            window.gameStateManager.startGame();
+                        } else {
+                            console.error('❌ 游戏状态管理器未找到');
+                        }
                     });
                 } else {
                     console.error('❌ 开始按钮元素未找到');
@@ -140,8 +150,32 @@
                     try {
                         initGame();
                         console.log('✅ 游戏初始化成功！');
+                        
+                        // 在Canvas上绘制一些内容以确认渲染正常
+                        const canvas = document.getElementById('gameCanvas');
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#87CEEB';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        ctx.fillStyle = '#333';
+                        ctx.font = '16px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('游戏已初始化，点击开始按钮开始游戏！', canvas.width / 2, canvas.height / 2);
+                        
                     } catch (error) {
                         console.error('❌ 游戏初始化失败:', error);
+                        
+                        // 在Canvas上显示错误信息
+                        const canvas = document.getElementById('gameCanvas');
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#87CEEB';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        ctx.fillStyle = '#FF0000';
+                        ctx.font = '16px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('游戏初始化失败', canvas.width / 2, canvas.height / 2 - 20);
+                        ctx.fillText(error.message, canvas.width / 2, canvas.height / 2 + 10);
                     }
                 } else {
                     console.error('⚠️ 部分组件缺失，游戏可能无法正常工作');

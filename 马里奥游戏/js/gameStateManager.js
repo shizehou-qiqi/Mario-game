@@ -186,16 +186,16 @@ class GameStateManager {
                 this.showGameUI();
 
                 // 🔧 确保游戏引擎可靠启动
+                console.log('🚀 启动游戏引擎...');
                 this.gameEngine.start();
-
-                // 延迟检查游戏引擎是否真正启动
-                setTimeout(() => {
-                    if (!this.gameEngine.isRunning || this.gameEngine.frameCount === 0) {
-                        console.warn('🔧 游戏引擎启动异常，尝试重启...');
-                        this.gameEngine.stop();
-                        this.gameEngine.start();
-                    }
-                }, 100);
+                
+                // 确保游戏引擎正在运行
+                if (!this.gameEngine.isRunning) {
+                    console.warn('⚠️ 游戏引擎启动失败，重试...');
+                    this.gameEngine.start();
+                }
+                
+                console.log('✅ 游戏引擎状态:', this.gameEngine.isRunning ? '运行中' : '未运行');
                 break;
                 
             case GameState.PAUSED:

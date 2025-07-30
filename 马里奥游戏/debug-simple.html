@@ -3,68 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>简单调试测试</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>马里奥游戏 - 极简调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #87CEEB;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            background: #87CEEB;
+            margin: 20px auto;
+            display: block;
+        }
+        .log {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="game-header">
-            <h1>马里奥游戏 - 调试模式</h1>
-            <div class="game-info">
-                <span id="score">分数: 0</span>
-                <span id="lives">生命: 3</span>
-            </div>
-        </div>
+    <div class="container">
+        <h1>🎮 马里奥游戏 - 极简调试</h1>
         
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
-        <div class="game-controls">
-            <p>调试信息：</p>
-            <p>如果Canvas显示蓝色背景，说明CSS正常</p>
-            <p>如果显示红色，说明有其他问题</p>
+        <div>
+            <button id="testBtn">🧪 测试基本功能</button>
+            <button id="startBtn">🚀 开始游戏</button>
+            <button id="clearBtn">🗑️ 清空日志</button>
         </div>
+        
+        <div class="log" id="log"></div>
     </div>
 
     <script>
-        console.log('🔧 简单调试测试开始');
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            const canvas = document.getElementById('gameCanvas');
+        // 简单的日志系统
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // 清空日志
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            document.getElementById('log').innerHTML = '';
+        });
+
+        // 测试基本功能
+        document.getElementById('testBtn').addEventListener('click', function() {
+            log('🧪 开始基本功能测试...');
             
-            if (!canvas) {
-                console.error('❌ Canvas元素未找到');
-                return;
+            // 测试Canvas
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                log('✅ Canvas 2D上下文获取成功');
+                
+                // 绘制测试内容
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(100, 100, 50, 50);
+                ctx.fillStyle = '#00FF00';
+                ctx.fillRect(200, 200, 50, 50);
+                ctx.fillStyle = '#0000FF';
+                ctx.fillRect(300, 300, 50, 50);
+                
+                log('✅ 测试图形绘制成功');
+            } else {
+                log('❌ Canvas 2D上下文获取失败');
             }
             
-            const ctx = canvas.getContext('2d');
-            console.log('✅ Canvas获取成功:', canvas.width, 'x', canvas.height);
+            // 测试全局对象
+            log('🔍 检查全局对象...');
+            const globals = ['GameEngine', 'Player', 'Level', 'GameStateManager'];
+            globals.forEach(name => {
+                if (typeof window[name] !== 'undefined') {
+                    log(`✅ ${name} 已加载`);
+                } else {
+                    log(`❌ ${name} 未找到`);
+                }
+            });
+        });
+
+        // 开始游戏按钮
+        document.getElementById('startBtn').addEventListener('click', function() {
+            log('🚀 尝试启动游戏...');
             
-            // 测试1：直接填充蓝色
-            ctx.fillStyle = '#87CEEB';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            console.log('✅ 蓝色背景填充完成');
+            try {
+                // 检查是否有initGame函数
+                if (typeof initGame === 'function') {
+                    log('✅ 找到initGame函数');
+                    initGame();
+                    log('✅ initGame执行完成');
+                } else {
+                    log('❌ 未找到initGame函数');
+                }
+                
+                // 检查游戏引擎
+                if (window.gameEngine) {
+                    log('✅ 游戏引擎存在');
+                    if (window.gameEngine.isRunning) {
+                        log('✅ 游戏引擎正在运行');
+                    } else {
+                        log('⚠️ 游戏引擎未运行');
+                    }
+                } else {
+                    log('❌ 游戏引擎不存在');
+                }
+                
+                // 检查状态管理器
+                if (window.gameStateManager) {
+                    log('✅ 状态管理器存在');
+                    log(`当前状态: ${window.gameStateManager.getCurrentState()}`);
+                } else {
+                    log('❌ 状态管理器不存在');
+                }
+                
+            } catch (error) {
+                log(`❌ 启动游戏时出错: ${error.message}`);
+                console.error('启动错误:', error);
+            }
+        });
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            log('📄 页面加载完成');
             
-            // 测试2：绘制白色方块
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(100, 100, 200, 100);
-            console.log('✅ 白色方块绘制完成');
+            // 检查Canvas
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas) {
+                log('✅ Canvas元素找到');
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    log('✅ Canvas 2D上下文创建成功');
+                    
+                    // 绘制初始内容
+                    ctx.fillStyle = '#87CEEB';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#333';
+                    ctx.font = '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('调试模式 - 点击测试按钮', canvas.width / 2, canvas.height / 2);
+                } else {
+                    log('❌ Canvas 2D上下文创建失败');
+                }
+            } else {
+                log('❌ Canvas元素未找到');
+            }
+        });
+
+        // 监听错误
+        window.addEventListener('error', function(event) {
+            log(`❌ 页面错误: ${event.error.message}`);
+        });
+
+        // 监听未处理的Promise拒绝
+        window.addEventListener('unhandledrejection', function(event) {
+            log(`❌ Promise错误: ${event.reason}`);
+        });
+    </script>
+
+    <!-- 加载游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        // 脚本加载完成后的检查
+        window.addEventListener('load', function() {
+            log('📦 所有脚本加载完成');
             
-            // 测试3：绘制文字
-            ctx.fillStyle = '#000000';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText('简单调试测试', 110, 140);
-            ctx.fillText('背景应该是蓝色', 110, 170);
-            console.log('✅ 文字绘制完成');
+            // 检查关键函数和类
+            const checks = [
+                { name: 'initGame', type: 'function' },
+                { name: 'GameEngine', type: 'class' },
+                { name: 'Player', type: 'class' },
+                { name: 'Level', type: 'class' },
+                { name: 'GameStateManager', type: 'class' }
+            ];
             
-            // 测试4：检查Canvas样式
-            const computedStyle = window.getComputedStyle(canvas);
-            console.log('Canvas CSS背景色:', computedStyle.backgroundColor);
-            console.log('Canvas CSS显示:', computedStyle.display);
-            console.log('Canvas CSS位置:', computedStyle.position);
-            console.log('Canvas CSS z-index:', computedStyle.zIndex);
-            
-            console.log('🎉 简单调试测试完成');
+            checks.forEach(check => {
+                if (typeof window[check.name] !== 'undefined') {
+                    log(`✅ ${check.name} ${check.type} 已加载`);
+                } else {
+                    log(`❌ ${check.name} ${check.type} 未找到`);
+                }
+            });
         });
     </script>
 </body>

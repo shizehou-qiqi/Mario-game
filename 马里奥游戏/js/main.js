@@ -1,4 +1,53 @@
 /**
+ * GameInfoDisplay类 - 游戏信息显示对象
+ */
+class GameInfoDisplay extends GameObject {
+    constructor() {
+        super(10, 10, 300, 120);
+        this.tag = 'GameInfoDisplay';
+        this.collisionEnabled = false;
+        this.useGravity = false;
+    }
+    
+    onRender(context, interpolation) {
+        // 保存上下文并重置变换（使UI固定在屏幕上）
+        context.save();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // 显示控制说明
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(10, 10, 280, 110);
+        
+        context.fillStyle = '#FFFFFF';
+        context.font = '14px Arial';
+        context.textAlign = 'left';
+        context.fillText('控制说明:', 20, 30);
+        context.fillText('← → 移动', 20, 50);
+        context.fillText('空格键 跳跃', 20, 65);
+        context.fillText('ESC 暂停', 20, 80);
+        
+        // 显示玩家状态（如果玩家存在）
+        if (window.player) {
+            const status = window.player.getStatus();
+            context.fillStyle = '#CCCCCC';
+            context.font = '12px Arial';
+            context.fillText(`位置: (${Math.round(status.position.x)}, ${Math.round(status.position.y)})`, 20, 100);
+            context.fillText(`状态: ${status.animationState}`, 20, 115);
+        }
+        
+        // 显示关卡信息
+        if (window.currentLevel) {
+            const levelInfo = window.currentLevel.getLevelInfo();
+            context.fillStyle = '#FFFF00';
+            context.fillText(`关卡: ${levelInfo.platformCount} 平台`, 150, 100);
+            context.fillText(`尺寸: ${levelInfo.width}x${levelInfo.height}`, 150, 115);
+        }
+        
+        context.restore();
+    }
+}
+
+/**
  * 马里奥游戏主入口文件
  * 负责初始化游戏和管理游戏状态
  */
@@ -77,11 +126,9 @@ function initGame() {
     gameStateManager.init();
     window.gameStateManager = gameStateManager; // 全局访问
 
-    // 🔧 延迟设置状态管理器回调，确保完全初始化
-    setTimeout(() => {
-        setupStateManagerCallbacks();
-        console.log('✅ 状态管理器回调设置完成');
-    }, 10);
+    // 🔧 立即设置状态管理器回调
+    setupStateManagerCallbacks();
+    console.log('✅ 状态管理器回调设置完成');
     
     // 设置游戏事件监听器
     setupGameEventListeners();
@@ -267,23 +314,59 @@ function updateUIForState(state) {
  * 初始化游戏玩法（创建关卡、玩家等）
  */
 function initializeGameplay() {
-    // 重置分数管理器
-    scoreManager.reset();
+    console.log('🎮 开始初始化游戏玩法...');
     
-    // 创建粒子系统
-    createParticleSystem();
-    
-    // 创建关卡
+    try {
+        // 重置分数管理器
+        if (scoreManager) {
+            scoreManager.reset();
+            console.log('✅ 分数管理器重置完成');
+        }
+        
+        // 创建粒子系统
+        createParticleSystem();
+        
+            // 创建关卡
     createLevel();
+    
+    // 将关卡设置为全局变量，供游戏引擎使用
+    window.currentLevel = currentLevel;
     
     // 创建玩家
     createPlayer();
-    
-    // 创建HUD管理器
-    createHUD();
-    
-    // 添加游戏UI
-    addGameUI();
+        
+        // 创建HUD管理器
+        createHUD();
+        
+        // 添加游戏UI
+        addGameUI();
+        
+        console.log('🎉 游戏玩法初始化完成！');
+        
+        // 在Canvas上绘制一些初始内容
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#87CEEB';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#333';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('游戏已启动！', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText('使用方向键移动，空格键跳跃', canvas.width / 2, canvas.height / 2 + 10);
+        
+    } catch (error) {
+        console.error('❌ 游戏玩法初始化失败:', error);
+        
+        // 在Canvas上显示错误信息
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FF0000';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('游戏玩法初始化失败', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText(error.message, canvas.width / 2, canvas.height / 2 + 10);
+    }
 }
 
 /**
@@ -350,48 +433,70 @@ function createParticleSystem() {
  * 创建关卡
  */
 function createLevel() {
-    currentLevel = new Level();
-    currentLevel.loadLevel(); // 加载默认关卡
+    console.log('🏗️ 创建关卡...');
     
-    // 将关卡对象添加到游戏引擎
-    const levelObjects = currentLevel.getAllObjects();
-    levelObjects.forEach(obj => {
-        gameEngine.addGameObject(obj);
-    });
-    
-    console.log('Level created and loaded');
+    try {
+        currentLevel = new Level();
+        currentLevel.loadLevel(); // 加载默认关卡
+        
+        // 将关卡对象添加到游戏引擎
+        const levelObjects = currentLevel.getAllObjects();
+        console.log(`📦 关卡对象数量: ${levelObjects.length}`);
+        
+        levelObjects.forEach(obj => {
+            if (obj && gameEngine) {
+                gameEngine.addGameObject(obj);
+            }
+        });
+        
+        console.log('✅ 关卡创建完成');
+        
+    } catch (error) {
+        console.error('❌ 关卡创建失败:', error);
+        throw error;
+    }
 }
 
 /**
  * 创建玩家角色
  */
 function createPlayer() {
-    const spawnPoint = currentLevel.getSpawnPoint();
-    player = new Player(spawnPoint.x, spawnPoint.y);
+    console.log('👤 创建玩家...');
+    
+    try {
+        const spawnPoint = currentLevel ? currentLevel.getSpawnPoint() : { x: 50, y: 500 };
+        player = new Player(spawnPoint.x, spawnPoint.y);
 
-    // 🔧 重要：初始化玩家（设置输入处理等）
-    player.init();
+        // 🔧 重要：初始化玩家（设置输入处理等）
+        player.init();
 
-    // 将分数管理器传递给玩家
-    if (scoreManager) {
-        player.scoreManager = scoreManager;
-        // 同步生命值
-        player.health = scoreManager.getLives();
-        player.maxHealth = scoreManager.getLives();
+        // 将分数管理器传递给玩家
+        if (scoreManager) {
+            player.scoreManager = scoreManager;
+            // 同步生命值
+            player.health = scoreManager.getLives();
+            player.maxHealth = scoreManager.getLives();
+        }
+
+        if (gameEngine) {
+            gameEngine.addGameObject(player);
+        }
+
+        // 🔧 重要：将玩家添加到关卡的allObjects中，确保被渲染
+        if (currentLevel) {
+            currentLevel.allObjects.push(player);
+            console.log('✅ 玩家已添加到关卡渲染列表');
+            
+            // 设置相机跟随玩家
+            currentLevel.setCameraTarget(player);
+        }
+
+        console.log('✅ 玩家创建完成');
+        
+    } catch (error) {
+        console.error('❌ 玩家创建失败:', error);
+        throw error;
     }
-
-    gameEngine.addGameObject(player);
-
-    // 🔧 重要：将玩家添加到关卡的allObjects中，确保被渲染
-    if (currentLevel) {
-        currentLevel.allObjects.push(player);
-        console.log('Player added to level.allObjects for rendering');
-    }
-
-    // 设置相机跟随玩家
-    currentLevel.setCameraTarget(player);
-
-    console.log('Player created and added to game');
 }
 
 /**
@@ -409,53 +514,6 @@ function createHUD() {
  * 添加游戏UI显示对象
  */
 function addGameUI() {
-    // 创建游戏信息显示对象（固定在屏幕上，不受相机影响）
-    class GameInfoDisplay extends GameObject {
-        constructor() {
-            super(10, 10, 300, 120);
-            this.tag = 'GameInfoDisplay';
-            this.collisionEnabled = false;
-            this.useGravity = false;
-        }
-        
-        onRender(context, interpolation) {
-            // 保存上下文并重置变换（使UI固定在屏幕上）
-            context.save();
-            context.setTransform(1, 0, 0, 1, 0, 0);
-            
-            // 显示控制说明
-            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            context.fillRect(10, 10, 280, 110);
-            
-            context.fillStyle = '#FFFFFF';
-            context.font = '14px Arial';
-            context.textAlign = 'left';
-            context.fillText('控制说明:', 20, 30);
-            context.fillText('← → 移动', 20, 50);
-            context.fillText('空格键 跳跃', 20, 65);
-            context.fillText('ESC 暂停', 20, 80);
-            
-            // 显示玩家状态（如果玩家存在）
-            if (player) {
-                const status = player.getStatus();
-                context.fillStyle = '#CCCCCC';
-                context.font = '12px Arial';
-                context.fillText(`位置: (${Math.round(status.position.x)}, ${Math.round(status.position.y)})`, 20, 100);
-                context.fillText(`状态: ${status.animationState}`, 20, 115);
-            }
-            
-            // 显示关卡信息
-            if (currentLevel) {
-                const levelInfo = currentLevel.getLevelInfo();
-                context.fillStyle = '#FFFF00';
-                context.fillText(`关卡: ${levelInfo.platformCount} 平台`, 150, 100);
-                context.fillText(`尺寸: ${levelInfo.width}x${levelInfo.height}`, 150, 115);
-            }
-            
-            context.restore();
-        }
-    }
-    
     const gameInfo = new GameInfoDisplay();
     gameEngine.addGameObject(gameInfo);
     

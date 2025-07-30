@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单调试测试</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>马里奥游戏 - 调试模式</h1>
+            <div class="game-info">
+                <span id="score">分数: 0</span>
+                <span id="lives">生命: 3</span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="game-controls">
+            <p>调试信息：</p>
+            <p>如果Canvas显示蓝色背景，说明CSS正常</p>
+            <p>如果显示红色，说明有其他问题</p>
+        </div>
+    </div>
+
+    <script>
+        console.log('🔧 简单调试测试开始');
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('gameCanvas');
+            
+            if (!canvas) {
+                console.error('❌ Canvas元素未找到');
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            console.log('✅ Canvas获取成功:', canvas.width, 'x', canvas.height);
+            
+            // 测试1：直接填充蓝色
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            console.log('✅ 蓝色背景填充完成');
+            
+            // 测试2：绘制白色方块
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(100, 100, 200, 100);
+            console.log('✅ 白色方块绘制完成');
+            
+            // 测试3：绘制文字
+            ctx.fillStyle = '#000000';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('简单调试测试', 110, 140);
+            ctx.fillText('背景应该是蓝色', 110, 170);
+            console.log('✅ 文字绘制完成');
+            
+            // 测试4：检查Canvas样式
+            const computedStyle = window.getComputedStyle(canvas);
+            console.log('Canvas CSS背景色:', computedStyle.backgroundColor);
+            console.log('Canvas CSS显示:', computedStyle.display);
+            console.log('Canvas CSS位置:', computedStyle.position);
+            console.log('Canvas CSS z-index:', computedStyle.zIndex);
+            
+            console.log('🎉 简单调试测试完成');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马里奥游戏控制台调试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #console {
+            background: #000;
+            border: 1px solid #333;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+        
+        #controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            background: #007acc;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        button:hover {
+            background: #005a9e;
+        }
+        
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+        .warning { color: #ffd43b; }
+        .info { color: #74c0fc; }
+    </style>
+</head>
+<body>
+    <h1>🔧 马里奥游戏控制台调试</h1>
+    
+    <div id="controls">
+        <button onclick="checkGameState()">检查游戏状态</button>
+        <button onclick="checkInputManager()">检查输入管理器</button>
+        <button onclick="checkPlayer()">检查玩家状态</button>
+        <button onclick="checkGameObjects()">检查游戏对象</button>
+        <button onclick="forceStartGame()">强制开始游戏</button>
+        <button onclick="startRealTimeMonitor()">开始实时监控</button>
+        <button onclick="stopRealTimeMonitor()">停止实时监控</button>
+        <button onclick="testPhysics()">测试物理系统</button>
+        <button onclick="testGameLoop()">测试游戏循环</button>
+        <button onclick="testCallbacks()">测试回调系统</button>
+        <button onclick="clearConsole()">清除控制台</button>
+    </div>
+    
+    <div id="console"></div>
+
+    <script>
+        let consoleDiv = document.getElementById('console');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            consoleDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+        
+        function checkGameState() {
+            log('=== 检查游戏状态 ===', 'info');
+
+            // 检查全局变量
+            const globals = ['gameEngine', 'gameStateManager', 'inputManager', 'player', 'currentLevel'];
+            globals.forEach(varName => {
+                if (window[varName]) {
+                    log(`✅ ${varName}: 已定义`, 'success');
+                } else {
+                    log(`❌ ${varName}: 未定义`, 'error');
+                }
+            });
+
+            // 检查游戏状态管理器
+            if (window.gameStateManager) {
+                log(`🎮 当前游戏状态: ${window.gameStateManager.currentState}`, 'info');
+            }
+
+            // 详细检查游戏引擎
+            if (window.gameEngine) {
+                log(`🎮 游戏引擎运行状态: ${window.gameEngine.isRunning}`, 'info');
+                log(`🎮 游戏引擎动画ID: ${window.gameEngine.animationId}`, 'info');
+                log(`🎮 游戏对象数量: ${window.gameEngine.gameObjects.length}`, 'info');
+                log(`🎮 帧率: ${window.gameEngine.currentFPS.toFixed(1)} FPS`, 'info');
+
+                // 检查update方法是否被调用
+                if (window.gameEngine.frameCount) {
+                    log(`🎮 总帧数: ${window.gameEngine.frameCount}`, 'success');
+                } else {
+                    log(`❌ 游戏循环可能没有运行`, 'error');
+                }
+            }
+        }
+        
+        function checkInputManager() {
+            log('=== 检查输入管理器 ===', 'info');
+            
+            if (!window.inputManager) {
+                log('❌ 输入管理器未初始化', 'error');
+                return;
+            }
+            
+            log('✅ 输入管理器已初始化', 'success');
+            
+            // 检查按键状态
+            const keys = ['ArrowLeft', 'ArrowRight', 'Space', 'ArrowUp'];
+            keys.forEach(key => {
+                const pressed = window.inputManager.isKeyPressed(key);
+                log(`🎮 ${key}: ${pressed}`, pressed ? 'warning' : 'info');
+            });
+            
+            // 显示所有按下的键
+            const pressedKeys = Object.keys(window.inputManager.keys).filter(key => window.inputManager.keys[key]);
+            if (pressedKeys.length > 0) {
+                log(`🔥 当前按下的键: ${pressedKeys.join(', ')}`, 'warning');
+            } else {
+                log('📝 当前没有按键被按下', 'info');
+            }
+        }
+        
+        function checkPlayer() {
+            log('=== 检查玩家状态 ===', 'info');
+            
+            if (!window.player) {
+                log('❌ 玩家对象未创建', 'error');
+                return;
+            }
+            
+            log('✅ 玩家对象已创建', 'success');
+            log(`📍 位置: (${window.player.position.x.toFixed(1)}, ${window.player.position.y.toFixed(1)})`, 'info');
+            log(`🏃 速度: (${window.player.velocity.x.toFixed(1)}, ${window.player.velocity.y.toFixed(1)})`, 'info');
+            log(`🌍 是否在地面: ${window.player.isGrounded}`, 'info');
+            
+            if (window.player.inputState) {
+                log('🎮 输入状态:', 'info');
+                Object.entries(window.player.inputState).forEach(([key, value]) => {
+                    log(`  ${key}: ${value}`, value ? 'warning' : 'info');
+                });
+            } else {
+                log('❌ 玩家输入状态未初始化', 'error');
+            }
+        }
+        
+        function checkGameObjects() {
+            log('=== 检查游戏对象 ===', 'info');
+            
+            if (!window.gameEngine) {
+                log('❌ 游戏引擎未初始化', 'error');
+                return;
+            }
+            
+            const objects = window.gameEngine.gameObjects;
+            log(`📦 游戏对象总数: ${objects.length}`, 'info');
+            
+            // 按类型分组
+            const objectTypes = {};
+            objects.forEach(obj => {
+                const type = obj.tag || obj.constructor.name;
+                objectTypes[type] = (objectTypes[type] || 0) + 1;
+            });
+            
+            Object.entries(objectTypes).forEach(([type, count]) => {
+                log(`  ${type}: ${count}个`, 'info');
+            });
+            
+            // 检查关卡
+            if (window.currentLevel) {
+                log(`🗺️ 关卡已加载: ${window.currentLevel.isLoaded}`, 'success');
+                log(`🗺️ 关卡尺寸: ${window.currentLevel.width}x${window.currentLevel.height}`, 'info');
+                log(`🗺️ 平台数量: ${window.currentLevel.platforms.length}`, 'info');
+                log(`🗺️ 敌人数量: ${window.currentLevel.enemies.length}`, 'info');
+            } else {
+                log('❌ 关卡未加载', 'error');
+            }
+        }
+        
+        function forceStartGame() {
+            log('=== 强制开始游戏 ===', 'warning');
+
+            if (window.gameStateManager) {
+                try {
+                    window.gameStateManager.startGame();
+                    log('✅ 游戏启动命令已发送', 'success');
+                } catch (error) {
+                    log(`❌ 启动游戏失败: ${error.message}`, 'error');
+                }
+            } else {
+                log('❌ 游戏状态管理器未初始化', 'error');
+            }
+        }
+
+        let monitorInterval = null;
+
+        function startRealTimeMonitor() {
+            if (monitorInterval) {
+                log('⚠️ 实时监控已在运行', 'warning');
+                return;
+            }
+
+            log('🔄 开始实时监控玩家状态...', 'info');
+
+            monitorInterval = setInterval(() => {
+                if (window.player && window.inputManager) {
+                    const p = window.player;
+                    const im = window.inputManager;
+
+                    // 清除控制台并显示实时状态
+                    clearConsole();
+                    log('=== 实时玩家监控 ===', 'info');
+                    log(`位置: (${p.position.x.toFixed(1)}, ${p.position.y.toFixed(1)})`, 'info');
+                    log(`速度: (${p.velocity.x.toFixed(1)}, ${p.velocity.y.toFixed(1)})`, 'info');
+                    log(`在地面: ${p.isGrounded}`, p.isGrounded ? 'success' : 'warning');
+                    log(`重力启用: ${p.useGravity}`, 'info');
+                    log(`碰撞启用: ${p.collisionEnabled}`, 'info');
+
+                    log('输入状态:', 'info');
+                    log(`  左: ${p.inputState.left} | 右: ${p.inputState.right}`, 'info');
+                    log(`  跳跃: ${p.inputState.jump} | 跳跃按下: ${p.inputState.jumpPressed}`, 'info');
+
+                    log('原始输入:', 'info');
+                    log(`  ArrowLeft: ${im.isKeyPressed('ArrowLeft')}`, 'info');
+                    log(`  ArrowRight: ${im.isKeyPressed('ArrowRight')}`, 'info');
+                    log(`  Space: ${im.isKeyPressed('Space')}`, 'info');
+
+                    // 检查是否有速度变化
+                    if (Math.abs(p.velocity.x) > 0.1 || Math.abs(p.velocity.y) > 0.1) {
+                        log('🏃 玩家正在移动！', 'success');
+                    } else {
+                        log('🚫 玩家静止', 'warning');
+                    }
+                }
+            }, 100); // 每100ms更新一次
+        }
+
+        function stopRealTimeMonitor() {
+            if (monitorInterval) {
+                clearInterval(monitorInterval);
+                monitorInterval = null;
+                log('⏹️ 实时监控已停止', 'info');
+            } else {
+                log('⚠️ 实时监控未运行', 'warning');
+            }
+        }
+
+        function testPhysics() {
+            log('=== 测试物理系统 ===', 'warning');
+
+            if (!window.player) {
+                log('❌ 玩家对象不存在', 'error');
+                return;
+            }
+
+            const player = window.player;
+            log(`🧪 测试前玩家速度: (${player.velocity.x}, ${player.velocity.y})`, 'info');
+
+            // 直接测试重力应用
+            if (window.Physics) {
+                log('✅ Physics类存在', 'success');
+                log(`🌍 重力常量: ${window.Physics.GRAVITY}`, 'info');
+
+                // 手动应用重力
+                const deltaTime = 1/60; // 1帧的时间
+                const oldVelocityY = player.velocity.y;
+
+                window.Physics.applyGravity(player, deltaTime);
+
+                log(`🧪 手动应用重力后速度: (${player.velocity.x}, ${player.velocity.y})`, 'info');
+                log(`📈 Y速度变化: ${oldVelocityY} -> ${player.velocity.y}`, 'info');
+
+                if (player.velocity.y > oldVelocityY) {
+                    log('✅ 重力正常工作！', 'success');
+                } else {
+                    log('❌ 重力没有效果！', 'error');
+                }
+            } else {
+                log('❌ Physics类不存在', 'error');
+            }
+
+            // 检查玩家的物理属性
+            log('🔍 玩家物理属性:', 'info');
+            log(`  useGravity: ${player.useGravity}`, 'info');
+            log(`  gravityScale: ${player.gravityScale}`, 'info');
+            log(`  velocity对象: ${player.velocity ? '存在' : '不存在'}`, 'info');
+
+            if (player.velocity) {
+                log(`  velocity类型: ${player.velocity.constructor.name}`, 'info');
+                log(`  velocity.y类型: ${typeof player.velocity.y}`, 'info');
+            }
+        }
+
+        function testGameLoop() {
+            log('=== 测试游戏循环 ===', 'warning');
+
+            if (!window.gameEngine) {
+                log('❌ 游戏引擎不存在', 'error');
+                return;
+            }
+
+            const engine = window.gameEngine;
+
+            // 记录初始状态
+            const initialFrameCount = engine.frameCount || 0;
+            const initialTime = performance.now();
+
+            log(`🔍 初始帧数: ${initialFrameCount}`, 'info');
+            log(`🔍 游戏引擎运行状态: ${engine.isRunning}`, 'info');
+            log(`🔍 动画ID: ${engine.animationId}`, 'info');
+
+            // 等待一段时间后检查帧数是否增加
+            setTimeout(() => {
+                const currentFrameCount = engine.frameCount || 0;
+                const currentTime = performance.now();
+                const timeDiff = currentTime - initialTime;
+                const frameDiff = currentFrameCount - initialFrameCount;
+
+                log(`⏱️ 经过时间: ${timeDiff.toFixed(1)}ms`, 'info');
+                log(`📊 帧数变化: ${initialFrameCount} -> ${currentFrameCount} (增加${frameDiff})`, 'info');
+
+                if (frameDiff > 0) {
+                    const actualFPS = (frameDiff / timeDiff) * 1000;
+                    log(`✅ 游戏循环正常运行！实际FPS: ${actualFPS.toFixed(1)}`, 'success');
+                } else {
+                    log(`❌ 游戏循环没有运行！帧数没有增加`, 'error');
+
+                    // 尝试手动启动游戏循环
+                    log(`🔧 尝试重新启动游戏引擎...`, 'warning');
+                    try {
+                        engine.stop();
+                        engine.start();
+                        log(`✅ 游戏引擎重启成功`, 'success');
+                    } catch (error) {
+                        log(`❌ 游戏引擎重启失败: ${error.message}`, 'error');
+                    }
+                }
+            }, 1000); // 等待1秒
+        }
+
+        function testCallbacks() {
+            log('=== 测试回调系统 ===', 'warning');
+
+            if (!window.gameStateManager) {
+                log('❌ 游戏状态管理器不存在', 'error');
+                return;
+            }
+
+            const gsm = window.gameStateManager;
+
+            // 检查回调是否已注册
+            log('🔍 检查已注册的回调:', 'info');
+            const callbacks = gsm.stateChangeCallbacks;
+            if (callbacks) {
+                Object.keys(callbacks).forEach(event => {
+                    log(`  ${event}: ${typeof callbacks[event]}`, 'info');
+                });
+
+                if (Object.keys(callbacks).length === 0) {
+                    log('❌ 没有注册任何回调！', 'error');
+                } else {
+                    log(`✅ 已注册 ${Object.keys(callbacks).length} 个回调`, 'success');
+                }
+            } else {
+                log('❌ stateChangeCallbacks 不存在', 'error');
+            }
+
+            // 测试手动触发gameStart回调
+            log('🧪 手动触发 gameStart 回调...', 'warning');
+            try {
+                gsm.triggerCallback('gameStart');
+                log('✅ gameStart 回调触发成功', 'success');
+
+                // 检查是否创建了玩家和关卡
+                setTimeout(() => {
+                    if (window.player) {
+                        log('✅ 玩家对象已创建', 'success');
+                    } else {
+                        log('❌ 玩家对象未创建', 'error');
+                    }
+
+                    if (window.currentLevel) {
+                        log('✅ 关卡对象已创建', 'success');
+                    } else {
+                        log('❌ 关卡对象未创建', 'error');
+                    }
+                }, 100);
+
+            } catch (error) {
+                log(`❌ 触发回调失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 页面加载完成后自动检查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('🚀 调试控制台已准备就绪', 'success');
+                checkGameState();
+            }, 1000);
+        });
+        
+        // 监听按键事件用于调试
+        document.addEventListener('keydown', (e) => {
+            log(`⌨️ 按键按下: ${e.code}`, 'warning');
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            log(`⌨️ 按键释放: ${e.code}`, 'info');
+        });
+    </script>
+</body>
+</html>

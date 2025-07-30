@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Unit Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .test-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .test-summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e2e3e5;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Physics Engine Unit Tests</h1>
+    <div id="testResults"></div>
+
+    <!-- 引入依赖 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/physics.js"></script>
+
+    <script>
+        // 简单的测试框架
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+            
+            test(name, testFunction) {
+                this.tests.push({ name, testFunction });
+            }
+            
+            run() {
+                this.results = [];
+                
+                for (const test of this.tests) {
+                    try {
+                        test.testFunction();
+                        this.results.push({ name: test.name, passed: true });
+                        this.logResult(test.name, true);
+                    } catch (error) {
+                        this.results.push({ name: test.name, passed: false, error: error.message });
+                        this.logResult(test.name, false, error.message);
+                    }
+                }
+                
+                this.showSummary();
+            }
+            
+            logResult(name, passed, error = null) {
+                const resultsDiv = document.getElementById('testResults');
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `test-result ${passed ? 'test-pass' : 'test-fail'}`;
+                
+                if (passed) {
+                    resultDiv.innerHTML = `✓ ${name}`;
+                } else {
+                    resultDiv.innerHTML = `✗ ${name}<br><small>${error}</small>`;
+                }
+                
+                resultsDiv.appendChild(resultDiv);
+            }
+            
+            showSummary() {
+                const passed = this.results.filter(r => r.passed).length;
+                const total = this.results.length;
+                
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'test-summary';
+                summaryDiv.innerHTML = `Tests completed: ${passed}/${total} passed`;
+                
+                document.getElementById('testResults').appendChild(summaryDiv);
+            }
+            
+            assert(condition, message) {
+                if (!condition) {
+                    throw new Error(message || 'Assertion failed');
+                }
+            }
+            
+            assertEqual(actual, expected, message) {
+                if (actual !== expected) {
+                    throw new Error(message || `Expected ${expected}, got ${actual}`);
+                }
+            }
+            
+            assertApproxEqual(actual, expected, tolerance = 0.001, message) {
+                if (Math.abs(actual - expected) > tolerance) {
+                    throw new Error(message || `Expected approximately ${expected}, got ${actual}`);
+                }
+            }
+        }
+        
+        // 创建测试运行器
+        const runner = new TestRunner();
+        
+        // 重力测试
+        runner.test('Physics.applyGravity should increase downward velocity', () => {
+            const obj = new GameObject(0, 0, 32, 32);
+            obj.velocity.y = 0;
+            
+            Physics.applyGravity(obj, 1/60); // 1帧的时间
+            
+            runner.assert(obj.velocity.y > 0, 'Velocity should increase downward');
+            runner.assertApproxEqual(obj.velocity.y, Physics.GRAVITY / 60, 1, 'Gravity should be applied correctly');
+        });
+        
+        // 摩擦力测试
+        runner.test('Physics.applyFriction should reduce horizontal velocity', () => {
+            const obj = new GameObject(0, 0, 32, 32);
+            obj.velocity.x = 100;
+            
+            const initialVelocity = obj.velocity.x;
+            Physics.applyFriction(obj, 1/60);
+            
+            runner.assert(Math.abs(obj.velocity.x) < Math.abs(initialVelocity), 'Friction should reduce velocity');
+        });
+        
+        // AABB碰撞检测测试
+        runner.test('Physics.checkAABBCollision should detect overlapping objects', () => {
+            const obj1 = new GameObject(10, 10, 20, 20);
+            const obj2 = new GameObject(15, 15, 20, 20);
+            
+            const collision = Physics.checkAABBCollision(obj1, obj2);
+            runner.assert(collision, 'Should detect collision between overlapping objects');
+        });
+        
+        runner.test('Physics.checkAABBCollision should not detect separated objects', () => {
+            const obj1 = new GameObject(10, 10, 20, 20);
+            const obj2 = new GameObject(50, 50, 20, 20);
+            
+            const collision = Physics.checkAABBCollision(obj1, obj2);
+            runner.assert(!collision, 'Should not detect collision between separated objects');
+        });
+        
+        // 碰撞方向测试
+        runner.test('Physics.getCollisionDirection should detect top collision', () => {
+            const obj1 = new GameObject(10, 5, 20, 20); // 上方对象
+            const obj2 = new GameObject(10, 20, 20, 20); // 下方对象
+            
+            const direction = Physics.getCollisionDirection(obj1, obj2);
+            runner.assertEqual(direction, Physics.CollisionType.TOP, 'Should detect top collision');
+        });
+        
+        runner.test('Physics.getCollisionDirection should detect left collision', () => {
+            const obj1 = new GameObject(5, 10, 20, 20); // 左侧对象
+            const obj2 = new GameObject(20, 10, 20, 20); // 右侧对象
+            
+            const direction = Physics.getCollisionDirection(obj1, obj2);
+            runner.assertEqual(direction, Physics.CollisionType.LEFT, 'Should detect left collision');
+        });
+        
+        // 地面检测测试
+        runner.test('Physics.isGrounded should detect object on platform', () => {
+            const obj = new GameObject(10, 18, 20, 20);
+            const platform = new GameObject(0, 38, 100, 20);
+            platform.isPlatform = true;
+            
+            const grounded = Physics.isGrounded(obj, [platform]);
+            runner.assert(grounded, 'Should detect object on platform');
+        });
+        
+        runner.test('Physics.isGrounded should not detect floating object', () => {
+            const obj = new GameObject(10, 10, 20, 20);
+            const platform = new GameObject(0, 50, 100, 20);
+            platform.isPlatform = true;
+            
+            const grounded = Physics.isGrounded(obj, [platform]);
+            runner.assert(!grounded, 'Should not detect floating object as grounded');
+        });
+        
+        // 碰撞解决测试
+        runner.test('Physics.resolveCollision should separate overlapping objects', () => {
+            const obj1 = new GameObject(10, 10, 20, 20);
+            const obj2 = new GameObject(15, 25, 20, 20);
+            
+            // 模拟从上方碰撞
+            Physics.resolveCollision(obj1, obj2, Physics.CollisionType.TOP);
+            
+            // obj1应该被推到obj2上方
+            runner.assert(obj1.position.y + obj1.size.y <= obj2.position.y + 1, 'Objects should be separated');
+        });
+        
+        // 边界碰撞测试
+        runner.test('Physics.handleBoundaryCollisions should keep object in bounds', () => {
+            const obj = new GameObject(-10, 10, 20, 20); // 超出左边界
+            const bounds = { x: 0, y: 0, width: 800, height: 600 };
+            
+            const collisions = Physics.handleBoundaryCollisions(obj, bounds);
+            
+            runner.assert(collisions.length > 0, 'Should detect boundary collision');
+            runner.assert(obj.position.x >= bounds.x, 'Object should be moved back into bounds');
+        });
+        
+        // 射线投射测试
+        runner.test('Physics.raycast should detect object in path', () => {
+            const obj = new GameObject(50, 50, 20, 20);
+            const origin = new Vector2D(10, 60);
+            const direction = new Vector2D(1, 0); // 向右
+            
+            const hit = Physics.raycast(origin, direction, 100, [obj]);
+            
+            runner.assert(hit !== null, 'Should detect object in ray path');
+            runner.assertEqual(hit.object, obj, 'Should return the correct object');
+        });
+        
+        runner.test('Physics.raycast should not detect object outside path', () => {
+            const obj = new GameObject(50, 100, 20, 20); // 不在射线路径上
+            const origin = new Vector2D(10, 60);
+            const direction = new Vector2D(1, 0); // 向右
+            
+            const hit = Physics.raycast(origin, direction, 100, [obj]);
+            
+            runner.assert(hit === null, 'Should not detect object outside ray path');
+        });
+        
+        // 运行所有测试
+        runner.run();
+    </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马里奥游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>马里奥游戏</h1>
+            <div class="game-info">
+                <span id="score">分数: 0</span>
+                <span id="lives">生命: 3</span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="game-controls">
+            <p>控制说明：</p>
+            <p>← → 方向键移动，空格键或↑跳跃</p>
+        </div>
+        
+        <div class="game-menu" id="gameMenu" style="display: block; z-index: 1000;">
+            <h2>🎮 马里奥游戏</h2>
+            <button id="startButton" style="background: #FF6B35; color: white; padding: 15px 30px; font-size: 1.2em; border: none; border-radius: 5px; cursor: pointer;">🚀 开始游戏</button>
+            <button id="pauseButton" style="display: none;">暂停</button>
+            <p style="margin-top: 15px; color: #666;">点击开始按钮开始游戏！</p>
+        </div>
+        
+        <div class="game-over" id="gameOver" style="display: none;">
+            <h2>游戏结束</h2>
+            <p>最终分数: <span id="finalScore">0</span></p>
+            <button id="restartButton">重新开始</button>
+            <button class="menu-button">返回菜单</button>
+        </div>
+        
+        <div class="victory-screen" id="victoryScreen" style="display: none;">
+            <h2>恭喜通关！</h2>
+            <p>关卡分数: <span id="victoryScore">0</span></p>
+            <button id="nextLevelButton">下一关</button>
+            <button class="menu-button">返回菜单</button>
+        </div>
+        
+        <div class="pause-overlay" id="pauseOverlay" style="display: none;">
+            <h2>游戏暂停</h2>
+            <button id="continueButton">继续游戏</button>
+            <button class="menu-button">返回菜单</button>
+        </div>
+    </div>
+    
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        // 调试代码：监听错误和测试按钮功能
+        console.log('🎮 马里奥游戏调试模式启动');
+
+        // 监听JavaScript错误
+        window.addEventListener('error', function(event) {
+            if (event.error) {
+                console.error('❌ JavaScript错误:', event.error.message);
+                console.error('📁 文件:', event.filename + ':' + event.lineno);
+                console.error('📋 堆栈:', event.error.stack);
+
+                // 在页面上显示错误信息
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position: fixed; top: 10px; left: 10px; background: red; color: white; padding: 10px; z-index: 9999; max-width: 400px; font-family: monospace; font-size: 12px;';
+                errorDiv.innerHTML = `<strong>错误:</strong> ${event.error.message}<br><strong>文件:</strong> ${event.filename}:${event.lineno}`;
+                document.body.appendChild(errorDiv);
+            } else {
+                console.error('❌ 未知错误:', event);
+            }
+        });
+
+        // 页面加载完成后的额外检查
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM加载完成');
+
+            // 延迟检查，确保所有脚本都加载完成
+            setTimeout(() => {
+                console.log('🔍 检查游戏组件...');
+
+                // 检查关键函数和类
+                const components = [
+                    { name: 'initGame', type: 'function' },
+                    { name: 'GameEngine', type: 'class' },
+                    { name: 'GameStateManager', type: 'class' },
+                    { name: 'EventManager', type: 'class' }
+                ];
+
+                let allComponentsLoaded = true;
+
+                components.forEach(component => {
+                    if (typeof window[component.name] !== 'undefined') {
+                        console.log(`✅ ${component.name} ${component.type} 已加载`);
+                    } else {
+                        console.error(`❌ ${component.name} ${component.type} 未找到`);
+                        allComponentsLoaded = false;
+                    }
+                });
+
+                // 检查按钮元素
+                const startButton = document.getElementById('startButton');
+                if (startButton) {
+                    console.log('✅ 开始按钮元素找到');
+
+                    // 添加额外的点击监听器用于调试
+                    startButton.addEventListener('click', function() {
+                        console.log('🖱️ 开始按钮被点击！');
+                    });
+                } else {
+                    console.error('❌ 开始按钮元素未找到');
+                    allComponentsLoaded = false;
+                }
+
+                if (allComponentsLoaded) {
+                    console.log('🎉 所有组件检查通过！');
+
+                    // 🔧 重要：调用游戏初始化函数
+                    console.log('🚀 开始初始化游戏...');
+                    try {
+                        initGame();
+                        console.log('✅ 游戏初始化成功！');
+                    } catch (error) {
+                        console.error('❌ 游戏初始化失败:', error);
+                    }
+                } else {
+                    console.error('⚠️ 部分组件缺失，游戏可能无法正常工作');
+                }
+
+            }, 1000);
+        });
+
+        console.log('🔧 调试脚本加载完成');
+    </script>
+</body>
+</html>

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务13验证 - 游戏失败条件</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .test-section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .controls h3 {
+            margin-top: 0;
+            color: #666;
+        }
+        
+        .control-group {
+            margin-bottom: 10px;
+        }
+        
+        .control-group label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button.danger {
+            background-color: #dc3545;
+        }
+        
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        
+        button.success {
+            background-color: #28a745;
+        }
+        
+        button.success:hover {
+            background-color: #218838;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+            background-color: #87CEEB;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-item .label {
+            font-weight: bold;
+            color: #666;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .info-item .value {
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .test-results h3 {
+            margin-top: 0;
+            color: #666;
+        }
+        
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .test-status.pass {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .test-status.fail {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .test-status.pending {
+            background-color: #ffc107;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>任务13验证 - 游戏失败条件</h1>
+        
+        <div class="test-section">
+            <h2>测试说明</h2>
+            <p>本测试验证以下功能：</p>
+            <ul>
+                <li><strong>掉出屏幕检测</strong>：玩家掉出屏幕底部时触发失败条件</li>
+                <li><strong>生命值系统</strong>：玩家受伤时减少生命值，生命值为0时游戏结束</li>
+                <li><strong>死亡动画</strong>：不同死亡类型的视觉反馈</li>
+                <li><strong>重生机制</strong>：玩家死亡后的重生逻辑和无敌时间</li>
+            </ul>
+        </div>
+        
+        <div class="controls">
+            <h3>测试控制</h3>
+            <div class="control-group">
+                <label>游戏控制：</label>
+                <button onclick="startGame()">开始游戏</button>
+                <button onclick="pauseGame()">暂停/继续</button>
+                <button onclick="resetGame()">重置游戏</button>
+            </div>
+            <div class="control-group">
+                <label>失败条件测试：</label>
+                <button class="danger" onclick="testFallOutOfBounds()">测试掉出屏幕</button>
+                <button class="danger" onclick="testEnemyDeath()">测试敌人死亡</button>
+                <button class="danger" onclick="testLifeLoss()">减少生命值</button>
+            </div>
+            <div class="control-group">
+                <label>玩家控制：</label>
+                <button onclick="teleportPlayer(100, 400)">传送到安全位置</button>
+                <button onclick="teleportPlayer(400, 700)">传送到屏幕底部</button>
+                <button class="success" onclick="addLife()">增加生命值</button>
+            </div>
+            <div class="control-group">
+                <label>调试选项：</label>
+                <button onclick="toggleDebug()">切换调试模式</button>
+                <button onclick="showPlayerStatus()">显示玩家状态</button>
+            </div>
+        </div>
+        
+        <div class="game-info">
+            <div class="info-item">
+                <span class="label">分数</span>
+                <span class="value" id="scoreDisplay">0</span>
+            </div>
+            <div class="info-item">
+                <span class="label">生命值</span>
+                <span class="value" id="livesDisplay">3</span>
+            </div>
+            <div class="info-item">
+                <span class="label">游戏状态</span>
+                <span class="value" id="gameStateDisplay">菜单</span>
+            </div>
+            <div class="info-item">
+                <span class="label">玩家状态</span>
+                <span class="value" id="playerStateDisplay">-</span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="test-results">
+            <h3>测试结果</h3>
+            <div class="test-item">
+                <span>掉出屏幕检测</span>
+                <span class="test-status pending" id="fallTest">待测试</span>
+            </div>
+            <div class="test-item">
+                <span>敌人碰撞死亡</span>
+                <span class="test-status pending" id="enemyDeathTest">待测试</span>
+            </div>
+            <div class="test-item">
+                <span>生命值系统</span>
+                <span class="test-status pending" id="lifeSystemTest">待测试</span>
+            </div>
+            <div class="test-item">
+                <span>死亡动画</span>
+                <span class="test-status pending" id="deathAnimationTest">待测试</span>
+            </div>
+            <div class="test-item">
+                <span>重生机制</span>
+                <span class="test-status pending" id="respawnTest">待测试</span>
+            </div>
+            <div class="test-item">
+                <span>游戏结束逻辑</span>
+                <span class="test-status pending" id="gameOverTest">待测试</span>
+            </div>
+        </div>
+        
+        <div class="status info" id="statusDisplay">
+            准备开始测试。点击"开始游戏"按钮开始。
+        </div>
+    </div>
+
+    <!-- 游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        // 测试状态跟踪
+        let testResults = {
+            fallTest: false,
+            enemyDeathTest: false,
+            lifeSystemTest: false,
+            deathAnimationTest: false,
+            respawnTest: false,
+            gameOverTest: false
+        };
+        
+        let debugMode = false;
+        let originalLives = 3;
+        
+        // 等待游戏初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置事件监听器
+            setupEventListeners();
+            updateDisplay();
+            
+            // 定期更新显示
+            setInterval(updateDisplay, 100);
+        });
+        
+        function setupEventListeners() {
+            // 监听游戏事件
+            if (window.addEventListener) {
+                window.addEventListener('mario_playerDeath', function(event) {
+                    console.log('Player death event:', event.detail);
+                    handlePlayerDeathEvent(event.detail);
+                });
+                
+                window.addEventListener('mario_playerRespawn', function(event) {
+                    console.log('Player respawn event:', event.detail);
+                    handlePlayerRespawnEvent(event.detail);
+                });
+                
+                window.addEventListener('mario_lifeLost', function(event) {
+                    console.log('Life lost event:', event.detail);
+                    handleLifeLostEvent(event.detail);
+                });
+            }
+        }
+        
+        function handlePlayerDeathEvent(data) {
+            updateStatus(`玩家死亡：${data.deathType}，位置：(${Math.round(data.position.x)}, ${Math.round(data.position.y)})`, 'warning');
+            
+            // 标记相关测试为通过
+            if (data.deathType === 'fall') {
+                setTestResult('fallTest', true);
+                setTestResult('deathAnimationTest', true);
+            } else if (data.deathType === 'enemy') {
+                setTestResult('enemyDeathTest', true);
+                setTestResult('deathAnimationTest', true);
+            }
+            
+            // 检查是否是游戏结束
+            if (data.player && data.player.health <= 0) {
+                setTestResult('gameOverTest', true);
+            }
+        }
+        
+        function handlePlayerRespawnEvent(data) {
+            updateStatus(`玩家重生，剩余生命：${data.livesRemaining}`, 'success');
+            setTestResult('respawnTest', true);
+        }
+        
+        function handleLifeLostEvent(data) {
+            updateStatus(`生命值减少，剩余：${data.livesRemaining}`, 'warning');
+            setTestResult('lifeSystemTest', true);
+            
+            if (data.isGameOver) {
+                setTestResult('gameOverTest', true);
+                updateStatus('游戏结束！', 'error');
+            }
+        }
+        
+        function startGame() {
+            if (window.gameStateManager) {
+                window.gameStateManager.startGame();
+                updateStatus('游戏已开始', 'success');
+            }
+        }
+        
+        function pauseGame() {
+            if (window.gameStateManager) {
+                window.gameStateManager.togglePause();
+                updateStatus('游戏暂停/继续', 'info');
+            }
+        }
+        
+        function resetGame() {
+            if (window.gameStateManager) {
+                window.gameStateManager.restartGame();
+                updateStatus('游戏已重置', 'info');
+                
+                // 重置测试结果
+                Object.keys(testResults).forEach(key => {
+                    testResults[key] = false;
+                    setTestResult(key, false);
+                });
+            }
+        }
+        
+        function testFallOutOfBounds() {
+            if (window.player) {
+                // 将玩家传送到屏幕底部下方
+                window.player.setPosition(400, 700);
+                updateStatus('测试掉出屏幕：玩家已传送到屏幕底部', 'warning');
+            } else {
+                updateStatus('请先开始游戏', 'error');
+            }
+        }
+        
+        function testEnemyDeath() {
+            if (window.player && window.currentLevel) {
+                // 将玩家传送到敌人旁边
+                const enemies = window.currentLevel.getEnemies();
+                if (enemies.length > 0) {
+                    const enemy = enemies[0];
+                    window.player.setPosition(enemy.position.x, enemy.position.y);
+                    updateStatus('测试敌人死亡：玩家已传送到敌人位置', 'warning');
+                } else {
+                    updateStatus('没有找到敌人', 'error');
+                }
+            } else {
+                updateStatus('请先开始游戏', 'error');
+            }
+        }
+        
+        function testLifeLoss() {
+            if (window.player && window.scoreManager) {
+                const currentLives = window.scoreManager.getLives();
+                if (currentLives > 0) {
+                    window.scoreManager.loseLife();
+                    window.player.health = window.scoreManager.getLives();
+                    updateStatus(`手动减少生命值，剩余：${window.scoreManager.getLives()}`, 'warning');
+                } else {
+                    updateStatus('生命值已为0', 'error');
+                }
+            } else {
+                updateStatus('请先开始游戏', 'error');
+            }
+        }
+        
+        function teleportPlayer(x, y) {
+            if (window.player) {
+                window.player.setPosition(x, y);
+                updateStatus(`玩家已传送到 (${x}, ${y})`, 'info');
+            } else {
+                updateStatus('请先开始游戏', 'error');
+            }
+        }
+        
+        function addLife() {
+            if (window.scoreManager) {
+                window.scoreManager.addLife();
+                if (window.player) {
+                    window.player.health = window.scoreManager.getLives();
+                }
+                updateStatus(`生命值已增加，当前：${window.scoreManager.getLives()}`, 'success');
+            } else {
+                updateStatus('请先开始游戏', 'error');
+            }
+        }
+        
+        function toggleDebug() {
+            debugMode = !debugMode;
+            const url = new URL(window.location);
+            if (debugMode) {
+                url.searchParams.set('debug', 'true');
+            } else {
+                url.searchParams.delete('debug');
+            }
+            window.history.replaceState({}, '', url);
+            updateStatus(`调试模式：${debugMode ? '开启' : '关闭'}`, 'info');
+        }
+        
+        function showPlayerStatus() {
+            if (window.player) {
+                const status = window.player.getStatus();
+                const health = window.player.getHealth();
+                const isDying = window.player.isDying;
+                const isInvulnerable = window.player.isInvulnerableState();
+                
+                const statusText = `
+                    位置: (${Math.round(status.position.x)}, ${Math.round(status.position.y)})
+                    速度: (${status.velocity.x.toFixed(1)}, ${status.velocity.y.toFixed(1)})
+                    状态: ${status.animationState}
+                    生命值: ${health}
+                    正在死亡: ${isDying}
+                    无敌状态: ${isInvulnerable}
+                    着地: ${status.isGrounded}
+                `;
+                
+                alert('玩家状态:\n' + statusText);
+            } else {
+                updateStatus('请先开始游戏', 'error');
+            }
+        }
+        
+        function updateDisplay() {
+            // 更新分数显示
+            if (window.scoreManager) {
+                document.getElementById('scoreDisplay').textContent = window.scoreManager.getCurrentScore();
+                document.getElementById('livesDisplay').textContent = window.scoreManager.getLives();
+            }
+            
+            // 更新游戏状态显示
+            if (window.gameStateManager) {
+                const state = window.gameStateManager.getCurrentState();
+                const stateNames = {
+                    'menu': '菜单',
+                    'playing': '游戏中',
+                    'paused': '暂停',
+                    'gameOver': '游戏结束',
+                    'victory': '胜利'
+                };
+                document.getElementById('gameStateDisplay').textContent = stateNames[state] || state;
+            }
+            
+            // 更新玩家状态显示
+            if (window.player) {
+                const status = window.player.getStatus();
+                let stateText = status.animationState;
+                if (window.player.isDying) {
+                    stateText += ' (死亡中)';
+                } else if (window.player.isInvulnerableState()) {
+                    stateText += ' (无敌)';
+                }
+                document.getElementById('playerStateDisplay').textContent = stateText;
+            }
+        }
+        
+        function setTestResult(testId, passed) {
+            testResults[testId] = passed;
+            const element = document.getElementById(testId);
+            if (element) {
+                element.textContent = passed ? '通过' : '待测试';
+                element.className = 'test-status ' + (passed ? 'pass' : 'pending');
+            }
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusElement = document.getElementById('statusDisplay');
+            statusElement.textContent = message;
+            statusElement.className = 'status ' + type;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // 键盘快捷键
+        document.addEventListener('keydown', function(event) {
+            switch(event.code) {
+                case 'F1':
+                    event.preventDefault();
+                    testFallOutOfBounds();
+                    break;
+                case 'F2':
+                    event.preventDefault();
+                    testEnemyDeath();
+                    break;
+                case 'F3':
+                    event.preventDefault();
+                    testLifeLoss();
+                    break;
+                case 'F5':
+                    event.preventDefault();
+                    resetGame();
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>

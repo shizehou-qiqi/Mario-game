@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玩家测试 - 马里奥游戏</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+            background: #87CEEB;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .debug-info {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>玩家角色测试</h1>
+        <p>测试玩家移动、跳跃和动画系统</p>
+        
+        <div class="controls">
+            <button id="startTest">开始测试</button>
+            <button id="stopTest" disabled>停止测试</button>
+            <button id="resetPlayer">重置玩家</button>
+            <button id="toggleDebug">切换调试模式</button>
+        </div>
+        
+        <canvas id="testCanvas" width="800" height="600"></canvas>
+        
+        <div class="controls">
+            <p><strong>控制说明：</strong></p>
+            <p>← → 方向键移动 | 空格键或↑跳跃 | 添加 ?debug=true 到URL查看调试信息</p>
+        </div>
+        
+        <div class="debug-info" id="debugInfo">
+            调试信息将在这里显示...
+        </div>
+    </div>
+
+    <!-- 引入游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+
+    <script>
+        // 测试变量
+        let testCanvas;
+        let testEngine;
+        let testPlayer;
+        let testInputManager;
+        let isTestRunning = false;
+        let debugMode = false;
+
+        // DOM元素
+        let startButton;
+        let stopButton;
+        let resetButton;
+        let debugButton;
+        let debugInfo;
+
+        /**
+         * 初始化测试
+         */
+        function initTest() {
+            console.log('初始化玩家测试...');
+            
+            // 获取DOM元素
+            testCanvas = document.getElementById('testCanvas');
+            startButton = document.getElementById('startTest');
+            stopButton = document.getElementById('stopTest');
+            resetButton = document.getElementById('resetPlayer');
+            debugButton = document.getElementById('toggleDebug');
+            debugInfo = document.getElementById('debugInfo');
+            
+            // 绑定事件
+            startButton.addEventListener('click', startTest);
+            stopButton.addEventListener('click', stopTest);
+            resetButton.addEventListener('click', resetPlayer);
+            debugButton.addEventListener('click', toggleDebug);
+            
+            // 检查URL参数
+            if (window.location.search.includes('debug=true')) {
+                debugMode = true;
+                debugButton.textContent = '关闭调试';
+            }
+            
+            console.log('测试初始化完成');
+        }
+
+        /**
+         * 开始测试
+         */
+        function startTest() {
+            if (isTestRunning) return;
+            
+            console.log('开始玩家测试...');
+            
+            // 创建输入管理器
+            testInputManager = new InputManager();
+            window.inputManager = testInputManager;
+            
+            // 创建游戏引擎
+            testEngine = new GameEngine(testCanvas);
+            testEngine.init();
+            
+            // 创建测试环境
+            createTestEnvironment();
+            
+            // 启动引擎
+            testEngine.start();
+            
+            // 更新UI
+            isTestRunning = true;
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            
+            // 开始调试信息更新
+            startDebugUpdate();
+            
+            console.log('测试开始运行');
+        }
+
+        /**
+         * 停止测试
+         */
+        function stopTest() {
+            if (!isTestRunning) return;
+            
+            console.log('停止测试...');
+            
+            // 停止引擎
+            if (testEngine) {
+                testEngine.stop();
+            }
+            
+            // 清理资源
+            if (testInputManager) {
+                testInputManager.destroy();
+                window.inputManager = null;
+            }
+            
+            // 更新UI
+            isTestRunning = false;
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            
+            console.log('测试已停止');
+        }
+
+        /**
+         * 重置玩家
+         */
+        function resetPlayer() {
+            if (testPlayer) {
+                testPlayer.respawn();
+                console.log('玩家已重置');
+            }
+        }
+
+        /**
+         * 切换调试模式
+         */
+        function toggleDebug() {
+            debugMode = !debugMode;
+            debugButton.textContent = debugMode ? '关闭调试' : '开启调试';
+            
+            // 更新URL参数
+            const url = new URL(window.location);
+            if (debugMode) {
+                url.searchParams.set('debug', 'true');
+            } else {
+                url.searchParams.delete('debug');
+            }
+            window.history.replaceState({}, '', url);
+        }
+
+        /**
+         * 创建测试环境
+         */
+        function createTestEnvironment() {
+            // 创建背景
+            class TestBackground extends GameObject {
+                constructor() {
+                    super(0, 0, testCanvas.width, testCanvas.height);
+                    this.tag = 'TestBackground';
+                    this.collisionEnabled = false;
+                }
+                
+                onRender(context, interpolation) {
+                    // 天空渐变
+                    const gradient = context.createLinearGradient(0, 0, 0, testCanvas.height);
+                    gradient.addColorStop(0, '#87CEEB');
+                    gradient.addColorStop(1, '#98FB98');
+                    context.fillStyle = gradient;
+                    context.fillRect(-this.size.x / 2, -this.size.y / 2, this.size.x, this.size.y);
+                    
+                    // 地面
+                    context.fillStyle = '#8B4513';
+                    context.fillRect(-this.size.x / 2, this.size.y / 2 - 50, this.size.x, 50);
+                    
+                    // 草地
+                    context.fillStyle = '#228B22';
+                    context.fillRect(-this.size.x / 2, this.size.y / 2 - 60, this.size.x, 10);
+                }
+            }
+
+            // 创建地面平台
+            class TestPlatform extends GameObject {
+                constructor(x, y, width, height) {
+                    super(x, y, width, height);
+                    this.tag = 'TestPlatform';
+                    this.isPlatform = true;
+                    this.useGravity = false;
+                    this.color = '#654321';
+                }
+                
+                onRender(context, interpolation) {
+                    // 平台顶部（草地）
+                    context.fillStyle = '#228B22';
+                    context.fillRect(-this.size.x / 2, -this.size.y / 2, this.size.x, 4);
+                    
+                    // 平台主体
+                    context.fillStyle = this.color;
+                    context.fillRect(-this.size.x / 2, -this.size.y / 2 + 4, this.size.x, this.size.y - 4);
+                }
+            }
+
+            // 添加背景
+            const background = new TestBackground();
+            testEngine.addGameObject(background);
+
+            // 添加地面
+            const ground = new TestPlatform(0, testCanvas.height - 50, testCanvas.width, 50);
+            testEngine.addGameObject(ground);
+
+            // 添加测试平台
+            const platforms = [
+                new TestPlatform(150, 450, 100, 20),
+                new TestPlatform(350, 350, 120, 20),
+                new TestPlatform(550, 250, 100, 20),
+                new TestPlatform(50, 300, 80, 20),
+                new TestPlatform(650, 400, 100, 20)
+            ];
+
+            platforms.forEach(platform => {
+                testEngine.addGameObject(platform);
+            });
+
+            // 创建玩家
+            testPlayer = new Player(100, 400);
+            testEngine.addGameObject(testPlayer);
+
+            console.log('测试环境创建完成');
+        }
+
+        /**
+         * 开始调试信息更新
+         */
+        function startDebugUpdate() {
+            function updateDebugInfo() {
+                if (!isTestRunning) return;
+                
+                let debugText = '';
+                
+                // 引擎信息
+                if (testEngine) {
+                    debugText += `引擎状态: ${testEngine.isRunning ? '运行中' : '已停止'}\n`;
+                    debugText += `FPS: ${testEngine.getFPS()}\n`;
+                    debugText += `游戏对象数量: ${testEngine.gameObjects.length}\n`;
+                    debugText += `Delta Time: ${testEngine.getDeltaTime().toFixed(2)}ms\n\n`;
+                }
+                
+                // 输入信息
+                if (testInputManager) {
+                    const inputDebug = testInputManager.getDebugInfo();
+                    debugText += `输入状态:\n`;
+                    debugText += `  按下的键: ${inputDebug.pressedKeys.join(', ') || '无'}\n`;
+                    debugText += `  水平轴: ${inputDebug.horizontalAxis}\n`;
+                    debugText += `  垂直轴: ${inputDebug.verticalAxis}\n`;
+                    debugText += `  任意键按下: ${inputDebug.anyKeyPressed}\n\n`;
+                }
+                
+                // 玩家信息
+                if (testPlayer) {
+                    const status = testPlayer.getStatus();
+                    debugText += `玩家状态:\n`;
+                    debugText += `  位置: (${Math.round(status.position.x)}, ${Math.round(status.position.y)})\n`;
+                    debugText += `  速度: (${status.velocity.x.toFixed(1)}, ${status.velocity.y.toFixed(1)})\n`;
+                    debugText += `  着地: ${status.isGrounded}\n`;
+                    debugText += `  动画状态: ${status.animationState}\n`;
+                    debugText += `  面向方向: ${status.facingDirection === 1 ? '右' : '左'}\n`;
+                    debugText += `  可跳跃: ${status.canJump}\n`;
+                }
+                
+                debugInfo.textContent = debugText;
+                
+                // 继续更新
+                requestAnimationFrame(updateDebugInfo);
+            }
+            
+            updateDebugInfo();
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initTest);
+    </script>
+</body>
+</html>

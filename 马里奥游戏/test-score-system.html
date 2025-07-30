@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分数系统快速测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+            display: block;
+            margin: 20px auto;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>分数系统快速测试</h1>
+        
+        <div class="info">
+            <p>这个测试页面验证ScoreManager和HUDManager的基本功能。</p>
+            <p>点击按钮测试不同的分数添加和动画效果。</p>
+        </div>
+        
+        <canvas id="testCanvas" width="800" height="400"></canvas>
+        
+        <div class="controls">
+            <button onclick="addCoin()">收集金币 (+100)</button>
+            <button onclick="defeatGoomba()">击败Goomba (+100)</button>
+            <button onclick="defeatKoopa()">击败Koopa (+200)</button>
+            <button onclick="loseLife()">失去生命</button>
+            <button onclick="resetGame()">重置游戏</button>
+        </div>
+        
+        <div class="info">
+            <p>当前分数: <span id="currentScore">0</span></p>
+            <p>最高分数: <span id="highScore">0</span></p>
+            <p>生命值: <span id="lives">3</span></p>
+            <p>连击: <span id="combo">无</span></p>
+        </div>
+        
+        <div class="info">
+            <h3>测试说明:</h3>
+            <ul>
+                <li>连续击败敌人可以获得连击奖励</li>
+                <li>分数动画会在Canvas上显示</li>
+                <li>最高分数会自动保存到localStorage</li>
+                <li>HUD显示会实时更新</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+
+    <script>
+        // 测试变量
+        let canvas;
+        let context;
+        let scoreManager;
+        let hudManager;
+        let animationId;
+        let lastTime = 0;
+
+        // 初始化测试
+        function init() {
+            canvas = document.getElementById('testCanvas');
+            context = canvas.getContext('2d');
+            
+            // 创建管理器
+            scoreManager = new ScoreManager();
+            hudManager = new HUDManager(scoreManager);
+            
+            // 开始游戏循环
+            gameLoop();
+            
+            // 更新显示
+            updateDisplay();
+            
+            console.log('分数系统测试初始化完成');
+        }
+
+        // 游戏循环
+        function gameLoop(currentTime = 0) {
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            // 更新管理器
+            scoreManager.update(deltaTime);
+            hudManager.onUpdate(deltaTime);
+            
+            // 清空画布
+            context.fillStyle = '#87CEEB';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 渲染HUD
+            hudManager.onRender(context, 0);
+            
+            // 更新显示信息
+            updateDisplay();
+            
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // 更新显示信息
+        function updateDisplay() {
+            document.getElementById('currentScore').textContent = scoreManager.getCurrentScore();
+            document.getElementById('highScore').textContent = scoreManager.getHighScore();
+            document.getElementById('lives').textContent = scoreManager.getLives();
+            
+            const comboInfo = scoreManager.getComboInfo();
+            if (comboInfo.count > 1) {
+                document.getElementById('combo').textContent = 
+                    `${comboInfo.count}连击 (x${comboInfo.multiplier.toFixed(1)})`;
+            } else {
+                document.getElementById('combo').textContent = '无';
+            }
+        }
+
+        // 测试函数
+        function addCoin() {
+            const position = {
+                x: Math.random() * 600 + 100,
+                y: Math.random() * 200 + 100
+            };
+            scoreManager.addScore('coin', 100, position);
+            hudManager.triggerScoreFlash();
+        }
+
+        function defeatGoomba() {
+            const position = {
+                x: Math.random() * 600 + 100,
+                y: Math.random() * 200 + 100
+            };
+            scoreManager.addScore('goomba', 100, position);
+            hudManager.triggerScoreFlash();
+        }
+
+        function defeatKoopa() {
+            const position = {
+                x: Math.random() * 600 + 100,
+                y: Math.random() * 200 + 100
+            };
+            scoreManager.addScore('koopa', 200, position);
+            hudManager.triggerScoreFlash();
+        }
+
+        function loseLife() {
+            scoreManager.loseLife();
+        }
+
+        function resetGame() {
+            scoreManager.reset();
+            hudManager.animations.scoreFlash.active = false;
+            hudManager.animations.comboDisplay.active = false;
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        });
+    </script>
+</body>
+</html>

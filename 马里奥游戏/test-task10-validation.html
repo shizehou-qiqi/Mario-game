@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务10验证 - 分数和UI系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        #testCanvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+        }
+        .score-display {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>任务10验证 - 分数和UI系统测试</h1>
+    
+    <div class="test-container">
+        <h2>测试概述</h2>
+        <p>本测试验证以下功能：</p>
+        <ul>
+            <li>ScoreManager类的分数计算功能</li>
+            <li>HUD界面显示分数和生命值</li>
+            <li>分数增加的动画效果</li>
+            <li>最高分数保存功能（localStorage）</li>
+            <li>连击系统和倍数计算</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>ScoreManager 功能测试</h2>
+        <div id="scoreManagerTests"></div>
+        <button onclick="testScoreManager()">运行 ScoreManager 测试</button>
+    </div>
+
+    <div class="test-container">
+        <h2>HUD 显示测试</h2>
+        <canvas id="testCanvas" width="800" height="200"></canvas>
+        <div class="score-display">
+            <div>当前分数: <span id="currentScore">0</span></div>
+            <div>最高分数: <span id="highScore">0</span></div>
+            <div>生命值: <span id="lives">3</span></div>
+            <div>连击: <span id="combo">无</span></div>
+        </div>
+        <div>
+            <button onclick="addTestScore('coin')">收集金币 (+100)</button>
+            <button onclick="addTestScore('goomba')">击败Goomba (+100)</button>
+            <button onclick="addTestScore('koopa')">击败Koopa (+200)</button>
+            <button onclick="loseTestLife()">失去生命</button>
+            <button onclick="resetTest()">重置测试</button>
+        </div>
+        <div id="hudTests"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>本地存储测试</h2>
+        <div id="storageTests"></div>
+        <button onclick="testLocalStorage()">测试本地存储</button>
+        <button onclick="clearStorageTest()">清除存储数据</button>
+    </div>
+
+    <div class="test-container">
+        <h2>动画效果测试</h2>
+        <div id="animationTests"></div>
+        <button onclick="testAnimations()">测试动画效果</button>
+    </div>
+
+    <!-- 加载游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+
+    <script>
+        // 测试变量
+        let testScoreManager;
+        let testHudManager;
+        let testCanvas;
+        let testContext;
+        let animationId;
+
+        // 初始化测试
+        function initTest() {
+            testCanvas = document.getElementById('testCanvas');
+            testContext = testCanvas.getContext('2d');
+            
+            testScoreManager = new ScoreManager();
+            testHudManager = new HUDManager(testScoreManager);
+            
+            // 开始渲染循环
+            renderLoop();
+            
+            console.log('测试初始化完成');
+        }
+
+        // 渲染循环
+        function renderLoop() {
+            // 清空画布
+            testContext.fillStyle = '#87CEEB';
+            testContext.fillRect(0, 0, testCanvas.width, testCanvas.height);
+            
+            // 更新管理器
+            testScoreManager.update(0.016); // 假设60FPS
+            testHudManager.onUpdate(0.016);
+            
+            // 渲染HUD
+            testHudManager.onRender(testContext, 0);
+            
+            // 更新显示
+            updateScoreDisplay();
+            
+            animationId = requestAnimationFrame(renderLoop);
+        }
+
+        // 更新分数显示
+        function updateScoreDisplay() {
+            document.getElementById('currentScore').textContent = testScoreManager.getCurrentScore();
+            document.getElementById('highScore').textContent = testScoreManager.getHighScore();
+            document.getElementById('lives').textContent = testScoreManager.getLives();
+            
+            const comboInfo = testScoreManager.getComboInfo();
+            if (comboInfo.count > 1) {
+                document.getElementById('combo').textContent = `${comboInfo.count}连击 (x${comboInfo.multiplier.toFixed(1)})`;
+            } else {
+                document.getElementById('combo').textContent = '无';
+            }
+        }
+
+        // 测试ScoreManager
+        function testScoreManager() {
+            const results = [];
+            const testDiv = document.getElementById('scoreManagerTests');
+            
+            try {
+                // 测试1: 基本分数添加
+                const manager = new ScoreManager();
+                manager.addScore('coin', 100);
+                const score1 = manager.getCurrentScore();
+                results.push({
+                    name: '基本分数添加',
+                    pass: score1 === 100,
+                    message: `期望: 100, 实际: ${score1}`
+                });
+
+                // 测试2: 连击系统
+                manager.addScore('goomba', 100);
+                manager.addScore('goomba', 100);
+                const score2 = manager.getCurrentScore();
+                results.push({
+                    name: '连击系统',
+                    pass: score2 > 300, // 应该有连击奖励
+                    message: `连击后分数: ${score2} (应该大于300)`
+                });
+
+                // 测试3: 生命值管理
+                const initialLives = manager.getLives();
+                manager.loseLife();
+                const livesAfter = manager.getLives();
+                results.push({
+                    name: '生命值管理',
+                    pass: livesAfter === initialLives - 1,
+                    message: `初始: ${initialLives}, 失去后: ${livesAfter}`
+                });
+
+                // 测试4: 分数格式化
+                const formatted = ScoreManager.formatScore(1234);
+                results.push({
+                    name: '分数格式化',
+                    pass: formatted === '001234',
+                    message: `期望: '001234', 实际: '${formatted}'`
+                });
+
+            } catch (error) {
+                results.push({
+                    name: '异常处理',
+                    pass: false,
+                    message: `错误: ${error.message}`
+                });
+            }
+
+            // 显示结果
+            testDiv.innerHTML = results.map(result => 
+                `<div class="test-result ${result.pass ? 'pass' : 'fail'}">
+                    ${result.name}: ${result.pass ? '通过' : '失败'} - ${result.message}
+                </div>`
+            ).join('');
+        }
+
+        // 添加测试分数
+        function addTestScore(type) {
+            const position = {
+                x: Math.random() * 600 + 100,
+                y: Math.random() * 100 + 50
+            };
+            testScoreManager.addScore(type, null, position);
+            testHudManager.triggerScoreFlash();
+        }
+
+        // 失去测试生命
+        function loseTestLife() {
+            testScoreManager.loseLife();
+        }
+
+        // 重置测试
+        function resetTest() {
+            testScoreManager.reset();
+        }
+
+        // 测试本地存储
+        function testLocalStorage() {
+            const results = [];
+            const testDiv = document.getElementById('storageTests');
+            
+            try {
+                // 创建测试管理器
+                const manager = new ScoreManager();
+                
+                // 添加一些分数
+                manager.addScore('coin', 5000);
+                const testScore = manager.getCurrentScore();
+                
+                // 测试保存
+                manager.saveHighScore();
+                
+                // 创建新管理器测试加载
+                const newManager = new ScoreManager();
+                const loadedScore = newManager.getHighScore();
+                
+                results.push({
+                    name: '最高分数保存/加载',
+                    pass: loadedScore >= testScore,
+                    message: `保存: ${testScore}, 加载: ${loadedScore}`
+                });
+
+                // 测试游戏统计
+                manager.saveGameStats();
+                const stats = manager.getGameStats();
+                
+                results.push({
+                    name: '游戏统计保存',
+                    pass: stats.gamesPlayed >= 1,
+                    message: `游戏次数: ${stats.gamesPlayed}`
+                });
+
+            } catch (error) {
+                results.push({
+                    name: '本地存储异常',
+                    pass: false,
+                    message: `错误: ${error.message}`
+                });
+            }
+
+            // 显示结果
+            testDiv.innerHTML = results.map(result => 
+                `<div class="test-result ${result.pass ? 'pass' : 'fail'}">
+                    ${result.name}: ${result.pass ? '通过' : '失败'} - ${result.message}
+                </div>`
+            ).join('');
+        }
+
+        // 清除存储测试
+        function clearStorageTest() {
+            testScoreManager.clearSavedData();
+            document.getElementById('storageTests').innerHTML = 
+                '<div class="test-result info">存储数据已清除</div>';
+        }
+
+        // 测试动画效果
+        function testAnimations() {
+            const results = [];
+            const testDiv = document.getElementById('animationTests');
+            
+            try {
+                // 测试分数动画创建
+                const initialAnimCount = testScoreManager.scoreAnimations.length;
+                testScoreManager.createScoreAnimation(100, {x: 400, y: 100}, 'coin');
+                const afterAnimCount = testScoreManager.scoreAnimations.length;
+                
+                results.push({
+                    name: '分数动画创建',
+                    pass: afterAnimCount > initialAnimCount,
+                    message: `动画数量: ${initialAnimCount} -> ${afterAnimCount}`
+                });
+
+                // 测试HUD动画触发
+                testHudManager.triggerScoreFlash();
+                const flashActive = testHudManager.animations.scoreFlash.active;
+                
+                results.push({
+                    name: 'HUD闪烁动画',
+                    pass: flashActive,
+                    message: `闪烁动画激活: ${flashActive}`
+                });
+
+                // 测试连击动画
+                testHudManager.triggerComboAnimation();
+                const comboActive = testHudManager.animations.comboDisplay.active;
+                
+                results.push({
+                    name: '连击动画',
+                    pass: comboActive,
+                    message: `连击动画激活: ${comboActive}`
+                });
+
+            } catch (error) {
+                results.push({
+                    name: '动画测试异常',
+                    pass: false,
+                    message: `错误: ${error.message}`
+                });
+            }
+
+            // 显示结果
+            testDiv.innerHTML = results.map(result => 
+                `<div class="test-result ${result.pass ? 'pass' : 'fail'}">
+                    ${result.name}: ${result.pass ? '通过' : '失败'} - ${result.message}
+                </div>`
+            ).join('');
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initTest);
+
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        });
+    </script>
+</body>
+</html>

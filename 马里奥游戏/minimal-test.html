@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最小化测试</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>马里奥游戏</h1>
+            <div class="game-info">
+                <span id="score">分数: 0</span>
+                <span id="lives">生命: 3</span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="game-menu" id="gameMenu">
+            <h2>开始游戏</h2>
+            <button id="startButton">开始</button>
+        </div>
+    </div>
+    
+    <!-- 只加载必要的脚本 -->
+    <script src="js/eventManager.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    
+    <script>
+        console.log('开始初始化最小化测试...');
+        
+        // 简化的游戏状态枚举
+        const GameState = {
+            MENU: 'menu',
+            PLAYING: 'playing'
+        };
+        
+        let gameEngine;
+        let gameStateManager;
+        
+        function initMinimalGame() {
+            console.log('初始化最小化游戏...');
+            
+            try {
+                // 获取Canvas
+                const gameCanvas = document.getElementById('gameCanvas');
+                const gameContext = gameCanvas.getContext('2d');
+                
+                if (!gameContext) {
+                    alert('您的浏览器不支持Canvas！');
+                    return;
+                }
+                
+                console.log('Canvas获取成功');
+                
+                // 初始化事件管理器
+                const eventManager = new EventManager();
+                window.gameEvents = eventManager;
+                console.log('EventManager初始化成功');
+                
+                // 初始化游戏引擎
+                gameEngine = new GameEngine(gameCanvas);
+                gameEngine.init();
+                console.log('GameEngine初始化成功');
+                
+                // 初始化游戏状态管理器
+                gameStateManager = new GameStateManager(gameEngine, gameCanvas);
+                gameStateManager.init();
+                console.log('GameStateManager初始化成功');
+                
+                // 设置开始游戏回调
+                gameStateManager.on('gameStart', () => {
+                    console.log('游戏开始回调触发');
+                    
+                    // 清除Canvas并绘制游戏开始画面
+                    gameContext.fillStyle = '#87CEEB';
+                    gameContext.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+                    
+                    gameContext.fillStyle = '#FF6B35';
+                    gameContext.font = 'bold 48px Arial';
+                    gameContext.textAlign = 'center';
+                    gameContext.fillText('游戏开始了！', gameCanvas.width / 2, gameCanvas.height / 2);
+                    
+                    gameContext.fillStyle = '#333333';
+                    gameContext.font = '20px Arial';
+                    gameContext.fillText('按钮功能正常工作！', gameCanvas.width / 2, gameCanvas.height / 2 + 60);
+                });
+                
+                console.log('最小化游戏初始化完成！');
+                
+            } catch (error) {
+                console.error('初始化失败:', error);
+                alert('游戏初始化失败: ' + error.message);
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM加载完成');
+            
+            // 延迟初始化以确保所有脚本都加载完成
+            setTimeout(() => {
+                initMinimalGame();
+            }, 100);
+        });
+        
+        // 错误监听
+        window.addEventListener('error', function(event) {
+            console.error('JavaScript错误:', event.error.message);
+            console.error('文件:', event.filename + ':' + event.lineno);
+            console.error('堆栈:', event.error.stack);
+        });
+        
+        console.log('最小化测试脚本加载完成');
+    </script>
+</body>
+</html>

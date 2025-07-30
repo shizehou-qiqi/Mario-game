@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马里奥游戏调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .debug-info {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007cba;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #console-output {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>马里奥游戏调试页面</h1>
+    
+    <div class="debug-info">
+        <h3>JavaScript文件加载状态</h3>
+        <div id="file-status"></div>
+    </div>
+    
+    <div class="debug-info">
+        <h3>测试按钮</h3>
+        <button onclick="testBasicFunctions()">测试基础功能</button>
+        <button onclick="testGameEngine()">测试游戏引擎</button>
+        <button onclick="testEventListeners()">测试事件监听器</button>
+        <button onclick="clearConsole()">清空控制台</button>
+    </div>
+    
+    <div class="debug-info">
+        <h3>控制台输出</h3>
+        <div id="console-output"></div>
+    </div>
+    
+    <!-- 加载所有JavaScript文件 -->
+    <script>
+        // 重写console.log来显示在页面上
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToConsole(message, type = 'log') {
+            const output = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '[ERROR]' : type === 'warn' ? '[WARN]' : '[LOG]';
+            output.textContent += `${timestamp} ${prefix} ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole(args.join(' '), 'warn');
+        };
+        
+        // 捕获未处理的错误
+        window.addEventListener('error', function(e) {
+            console.error(`未处理的错误: ${e.message} 在 ${e.filename}:${e.lineno}`);
+        });
+        
+        function clearConsole() {
+            document.getElementById('console-output').textContent = '';
+        }
+        
+        function testBasicFunctions() {
+            console.log('开始测试基础功能...');
+            
+            // 测试类是否存在
+            const classes = [
+                'Vector2D', 'Physics', 'GameObject', 'GameEngine', 
+                'GameStateManager', 'InputManager', 'Player', 
+                'Platform', 'Enemy', 'Collectible', 'Level', 
+                'ScoreManager', 'HUDManager'
+            ];
+            
+            classes.forEach(className => {
+                if (window[className]) {
+                    console.log(`✓ ${className} 类已加载`);
+                } else {
+                    console.error(`✗ ${className} 类未找到`);
+                }
+            });
+        }
+        
+        function testGameEngine() {
+            console.log('开始测试游戏引擎...');
+            
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                
+                if (window.GameEngine) {
+                    const engine = new GameEngine(canvas);
+                    console.log('✓ GameEngine 实例创建成功');
+                    
+                    engine.init();
+                    console.log('✓ GameEngine 初始化成功');
+                } else {
+                    console.error('✗ GameEngine 类不存在');
+                }
+            } catch (error) {
+                console.error(`✗ GameEngine 测试失败: ${error.message}`);
+            }
+        }
+        
+        function testEventListeners() {
+            console.log('开始测试事件监听器...');
+            
+            // 测试开始按钮
+            const startButton = document.getElementById('test-start-button');
+            if (startButton) {
+                startButton.addEventListener('click', function() {
+                    console.log('✓ 开始按钮点击事件正常工作');
+                });
+                console.log('✓ 事件监听器添加成功');
+            } else {
+                console.warn('测试按钮不存在，创建一个...');
+                const button = document.createElement('button');
+                button.id = 'test-start-button';
+                button.textContent = '测试开始按钮';
+                button.addEventListener('click', function() {
+                    console.log('✓ 测试按钮点击事件正常工作');
+                });
+                document.body.appendChild(button);
+            }
+        }
+        
+        // 检查文件加载状态
+        function checkFileStatus() {
+            const files = [
+                'js/vector2d.js',
+                'js/physics.js', 
+                'js/gameObject.js',
+                'js/gameEngine.js',
+                'js/gameStateManager.js',
+                'js/main.js'
+            ];
+            
+            const statusDiv = document.getElementById('file-status');
+            let html = '';
+            
+            files.forEach(file => {
+                // 这里我们检查相关的类是否存在来判断文件是否加载成功
+                const className = file.split('/')[1].replace('.js', '');
+                const capitalizedName = className.charAt(0).toUpperCase() + className.slice(1);
+                
+                if (window[capitalizedName] || window[className]) {
+                    html += `<div style="color: green;">✓ ${file} - 已加载</div>`;
+                } else {
+                    html += `<div style="color: red;">✗ ${file} - 未加载或有错误</div>`;
+                }
+            });
+            
+            statusDiv.innerHTML = html;
+        }
+        
+        // 页面加载完成后检查状态
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('调试页面加载完成');
+            setTimeout(checkFileStatus, 1000); // 延迟1秒检查，确保所有脚本都加载完成
+        });
+    </script>
+    
+    <!-- 加载游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

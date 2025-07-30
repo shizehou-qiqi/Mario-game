@@ -1,0 +1,170 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.game-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    text-align: center;
+    max-width: 900px;
+    width: 100%;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.game-header h1 {
+    color: #FF6B35;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.game-info {
+    display: flex;
+    gap: 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+}
+
+#gameCanvas {
+    border: 3px solid #333;
+    border-radius: 5px;
+    background: #87CEEB;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.game-controls {
+    margin-top: 20px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.game-controls p {
+    margin: 5px 0;
+}
+
+.game-menu, .game-over, .victory-screen, .pause-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    z-index: 100;
+    min-width: 300px;
+}
+
+.game-menu h2, .game-over h2, .victory-screen h2, .pause-overlay h2 {
+    color: #FF6B35;
+    margin-bottom: 20px;
+    font-size: 2em;
+}
+
+.victory-screen h2 {
+    color: #FFD700;
+}
+
+.pause-overlay h2 {
+    color: #4169E1;
+}
+
+.game-menu button, .game-over button, .victory-screen button, .pause-overlay button {
+    background: #FF6B35;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 10px;
+    transition: background 0.3s ease;
+    display: inline-block;
+}
+
+.game-menu button:hover, .game-over button:hover, .victory-screen button:hover, .pause-overlay button:hover {
+    background: #E55A2B;
+}
+
+.game-menu button:active, .game-over button:active, .victory-screen button:active, .pause-overlay button:active {
+    transform: translateY(2px);
+}
+
+.victory-screen button {
+    background: #32CD32;
+}
+
+.victory-screen button:hover {
+    background: #228B22;
+}
+
+.pause-overlay button {
+    background: #4169E1;
+}
+
+.pause-overlay button:hover {
+    background: #1E90FF;
+}
+
+/* 菜单按钮样式 */
+.menu-button {
+    background: #808080 !important;
+}
+
+.menu-button:hover {
+    background: #696969 !important;
+}
+
+#pauseButton {
+    background: #FFA500;
+}
+
+#pauseButton:hover {
+    background: #FF8C00;
+}
+
+/* 响应式设计 */
+@media (max-width: 900px) {
+    .game-container {
+        padding: 10px;
+    }
+    
+    #gameCanvas {
+        width: 100%;
+        height: auto;
+        max-width: 800px;
+    }
+    
+    .game-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .game-header h1 {
+        font-size: 2em;
+    }
+}

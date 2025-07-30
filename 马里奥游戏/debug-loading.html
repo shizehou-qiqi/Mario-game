@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试脚本加载</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .debug-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .log {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>马里奥游戏脚本加载调试</h1>
+        <div class="log" id="logOutput">开始加载脚本...</div>
+    </div>
+
+    <script>
+        const logOutput = document.getElementById('logOutput');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : '';
+            logOutput.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+            console.log(message);
+        }
+        
+        // 监听脚本加载错误
+        window.addEventListener('error', function(event) {
+            log(`JavaScript错误: ${event.error.message}`, 'error');
+            log(`文件: ${event.filename}:${event.lineno}`, 'error');
+            log(`错误堆栈: ${event.error.stack}`, 'error');
+        });
+        
+        // 脚本加载列表
+        const scripts = [
+            'js/vector2d.js',
+            'js/physics.js',
+            'js/spriteManager.js',
+            'js/gameObject.js',
+            'js/eventManager.js',
+            'js/audioManager.js',
+            'js/particleSystem.js',
+            'js/inputManager.js',
+            'js/platform.js',
+            'js/enemy.js',
+            'js/collectible.js',
+            'js/level.js',
+            'js/scoreManager.js',
+            'js/hudManager.js',
+            'js/player.js',
+            'js/gameEngine.js',
+            'js/gameStateManager.js',
+            'js/main.js'
+        ];
+        
+        let loadedScripts = 0;
+        
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                
+                script.onload = () => {
+                    log(`✓ ${src} 加载成功`, 'success');
+                    loadedScripts++;
+                    resolve();
+                };
+                
+                script.onerror = () => {
+                    log(`✗ ${src} 加载失败`, 'error');
+                    reject(new Error(`Failed to load ${src}`));
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+        
+        async function loadAllScripts() {
+            log('开始加载所有脚本...');
+            
+            try {
+                for (const script of scripts) {
+                    await loadScript(script);
+                }
+                
+                log(`所有脚本加载完成！(${loadedScripts}/${scripts.length})`, 'success');
+                
+                // 检查类是否可用
+                setTimeout(() => {
+                    checkClasses();
+                }, 100);
+                
+            } catch (error) {
+                log(`脚本加载失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkClasses() {
+            log('检查类是否可用...');
+            
+            const classes = [
+                'Vector2D', 'Physics', 'SpriteManager', 'GameObject', 
+                'EventManager', 'AudioManager', 'ParticleSystem', 
+                'InputManager', 'Platform', 'Enemy', 'Collectible', 
+                'Level', 'ScoreManager', 'HUDManager', 'Player', 
+                'GameEngine', 'GameStateManager'
+            ];
+            
+            let availableClasses = 0;
+            
+            classes.forEach(className => {
+                if (typeof window[className] !== 'undefined') {
+                    log(`✓ ${className} 可用`, 'success');
+                    availableClasses++;
+                } else {
+                    log(`✗ ${className} 不可用`, 'error');
+                }
+            });
+            
+            log(`类检查完成: ${availableClasses}/${classes.length} 可用`);
+            
+            if (availableClasses === classes.length) {
+                log('所有类都可用，尝试初始化游戏...', 'success');
+                tryInitializeGame();
+            } else {
+                log('部分类不可用，无法初始化游戏', 'error');
+            }
+        }
+        
+        function tryInitializeGame() {
+            try {
+                log('尝试调用 initGame 函数...');
+                
+                if (typeof initGame === 'function') {
+                    log('✓ initGame 函数可用', 'success');
+                    initGame();
+                    log('✓ 游戏初始化完成', 'success');
+                } else {
+                    log('✗ initGame 函数不可用', 'error');
+                }
+                
+            } catch (error) {
+                log(`游戏初始化失败: ${error.message}`, 'error');
+                log(`错误堆栈: ${error.stack}`, 'error');
+            }
+        }
+        
+        // 开始加载
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM加载完成，开始加载脚本...');
+            loadAllScripts();
+        });
+        
+        log('调试脚本已准备就绪');
+    </script>
+</body>
+</html>

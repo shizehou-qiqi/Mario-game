@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Engine Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .info {
+            text-align: center;
+            margin: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Physics Engine Test</h1>
+    
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="addFallingBox()">Add Falling Box</button>
+        <button onclick="addPlatform()">Add Platform</button>
+        <button onclick="clearObjects()">Clear All</button>
+        <button onclick="toggleDebug()">Toggle Debug</button>
+    </div>
+    
+    <div class="info">
+        <p>Click "Add Falling Box" to create objects that fall with gravity</p>
+        <p>Click "Add Platform" to create platforms for objects to land on</p>
+        <p>Add "?debug=true" to URL to see collision boundaries</p>
+    </div>
+
+    <!-- 引入依赖 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/gameEngine.js"></script>
+
+    <script>
+        // 创建游戏引擎实例
+        const canvas = document.getElementById('gameCanvas');
+        const engine = new GameEngine(canvas);
+        
+        // 初始化并启动引擎
+        engine.init().start();
+        
+        // 测试用的平台类
+        class Platform extends GameObject {
+            constructor(x, y, width, height) {
+                super(x, y, width, height);
+                this.tag = 'Platform';
+                this.color = '#8B4513'; // 棕色
+                this.isPlatform = true;
+                this.useGravity = false; // 平台不受重力影响
+                this.collisionEnabled = true;
+            }
+        }
+        
+        // 测试用的掉落盒子类
+        class FallingBox extends GameObject {
+            constructor(x, y) {
+                super(x, y, 32, 32);
+                this.tag = 'FallingBox';
+                this.color = '#FF6B6B'; // 红色
+                this.useGravity = true;
+                this.gravityScale = 1.0;
+                this.collisionEnabled = true;
+                
+                // 添加一些随机的初始速度
+                this.velocity.x = (Math.random() - 0.5) * 100;
+            }
+            
+            onCollision(other, direction, type) {
+                if (type === 'platform' && direction === Physics.CollisionType.TOP) {
+                    // 着陆在平台上
+                    this.isGrounded = true;
+                } else if (type === 'boundary') {
+                    // 碰到边界时改变颜色
+                    this.color = '#' + Math.floor(Math.random()*16777215).toString(16);
+                }
+            }
+            
+            onOutOfBounds() {
+                // 掉出屏幕时重新出现在顶部
+                this.position.x = Math.random() * (engine.canvas.width - this.size.x);
+                this.position.y = -this.size.y;
+                this.velocity.set((Math.random() - 0.5) * 100, 0);
+            }
+        }
+        
+        // 添加默认平台
+        function addDefaultPlatforms() {
+            // 地面平台
+            const ground = new Platform(0, 550, 800, 50);
+            engine.addGameObject(ground);
+            
+            // 一些悬浮平台
+            const platform1 = new Platform(200, 450, 150, 20);
+            engine.addGameObject(platform1);
+            
+            const platform2 = new Platform(450, 350, 150, 20);
+            engine.addGameObject(platform2);
+            
+            const platform3 = new Platform(100, 250, 100, 20);
+            engine.addGameObject(platform3);
+        }
+        
+        // 添加掉落盒子
+        function addFallingBox() {
+            const x = Math.random() * (canvas.width - 32);
+            const y = -32;
+            const box = new FallingBox(x, y);
+            engine.addGameObject(box);
+        }
+        
+        // 添加平台
+        function addPlatform() {
+            const x = Math.random() * (canvas.width - 150);
+            const y = Math.random() * (canvas.height - 100) + 50;
+            const platform = new Platform(x, y, 150, 20);
+            engine.addGameObject(platform);
+        }
+        
+        // 清除所有对象
+        function clearObjects() {
+            engine.gameObjects.forEach(obj => obj.destroy());
+            addDefaultPlatforms();
+        }
+        
+        // 切换调试模式
+        function toggleDebug() {
+            const url = new URL(window.location);
+            if (url.searchParams.has('debug')) {
+                url.searchParams.delete('debug');
+            } else {
+                url.searchParams.set('debug', 'true');
+            }
+            window.location.href = url.toString();
+        }
+        
+        // 初始化默认平台
+        addDefaultPlatforms();
+        
+        // 自动添加一些掉落盒子进行测试
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => addFallingBox(), i * 1000);
+        }
+        
+        // 显示物理信息
+        function showPhysicsInfo() {
+            const info = document.createElement('div');
+            info.style.position = 'fixed';
+            info.style.top = '10px';
+            info.style.left = '10px';
+            info.style.background = 'rgba(0,0,0,0.7)';
+            info.style.color = 'white';
+            info.style.padding = '10px';
+            info.style.fontFamily = 'monospace';
+            info.style.fontSize = '12px';
+            info.id = 'physicsInfo';
+            document.body.appendChild(info);
+            
+            function updateInfo() {
+                const boxes = engine.gameObjects.filter(obj => obj.tag === 'FallingBox');
+                const platforms = engine.gameObjects.filter(obj => obj.tag === 'Platform');
+                
+                info.innerHTML = `
+                    FPS: ${engine.getFPS()}<br>
+                    Objects: ${engine.gameObjects.length}<br>
+                    Falling Boxes: ${boxes.length}<br>
+                    Platforms: ${platforms.length}<br>
+                    Gravity: ${Physics.GRAVITY} px/s²<br>
+                    Terminal Velocity: ${Physics.TERMINAL_VELOCITY} px/s
+                `;
+                
+                requestAnimationFrame(updateInfo);
+            }
+            
+            updateInfo();
+        }
+        
+        showPhysicsInfo();
+    </script>
+</body>
+</html>

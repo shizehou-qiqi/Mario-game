@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单测试</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>马里奥游戏</h1>
+            <div class="game-info">
+                <span id="score">分数: 0</span>
+                <span id="lives">生命: 3</span>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="game-controls">
+            <p>控制说明：</p>
+            <p>← → 方向键移动，空格键或↑跳跃</p>
+        </div>
+        
+        <div class="game-menu" id="gameMenu">
+            <h2>开始游戏</h2>
+            <button id="startButton">开始</button>
+            <button id="pauseButton" style="display: none;">暂停</button>
+        </div>
+    </div>
+    
+    <script>
+        console.log('脚本开始加载...');
+        
+        // 简单的按钮测试
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM加载完成');
+            
+            const startButton = document.getElementById('startButton');
+            const gameMenu = document.getElementById('gameMenu');
+            const canvas = document.getElementById('gameCanvas');
+            const context = canvas.getContext('2d');
+            
+            console.log('startButton:', startButton);
+            console.log('gameMenu:', gameMenu);
+            console.log('canvas:', canvas);
+            
+            if (startButton) {
+                startButton.addEventListener('click', function() {
+                    console.log('开始按钮被点击了！');
+                    alert('开始按钮工作正常！');
+                    
+                    // 隐藏菜单
+                    if (gameMenu) {
+                        gameMenu.style.display = 'none';
+                    }
+                    
+                    // 在Canvas上绘制一些内容
+                    if (context) {
+                        context.fillStyle = '#87CEEB';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        context.fillStyle = '#FF6B35';
+                        context.font = 'bold 48px Arial';
+                        context.textAlign = 'center';
+                        context.fillText('游戏开始了！', canvas.width / 2, canvas.height / 2);
+                    }
+                });
+                
+                console.log('按钮事件监听器已添加');
+            } else {
+                console.error('找不到开始按钮！');
+            }
+        });
+        
+        console.log('脚本加载完成');
+    </script>
+</body>
+</html>

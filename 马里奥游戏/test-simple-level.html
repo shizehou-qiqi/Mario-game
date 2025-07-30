@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单关卡测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+            background: #87CEEB;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .info {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">关卡系统测试</h1>
+    
+    <div class="info">
+        <p>使用方向键移动，空格键跳跃。相机会跟随玩家移动。</p>
+        <p>添加 ?debug=true 到URL查看调试信息</p>
+    </div>
+    
+    <div class="controls">
+        <button onclick="startGame()">开始游戏</button>
+        <button onclick="resetGame()">重置</button>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <!-- 加载脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+
+    <script>
+        let canvas;
+        let engine;
+        let level;
+        let player;
+        let inputManager;
+        let isRunning = false;
+
+        function init() {
+            console.log('初始化游戏...');
+            
+            canvas = document.getElementById('gameCanvas');
+            
+            // 创建输入管理器
+            inputManager = new InputManager();
+            window.inputManager = inputManager;
+
+            // 创建游戏引擎
+            engine = new GameEngine(canvas);
+            engine.init();
+
+            // 创建关卡
+            level = new Level();
+            level.loadLevel();
+            window.currentLevel = level;
+
+            // 将关卡对象添加到引擎
+            const levelObjects = level.getAllObjects();
+            levelObjects.forEach(obj => {
+                engine.addGameObject(obj);
+            });
+
+            // 创建玩家
+            const spawnPoint = level.getSpawnPoint();
+            player = new Player(spawnPoint.x, spawnPoint.y);
+            engine.addGameObject(player);
+
+            // 设置相机跟随
+            level.setCameraTarget(player);
+
+            console.log('初始化完成');
+        }
+
+        function startGame() {
+            if (!engine) {
+                init();
+            }
+
+            if (!isRunning) {
+                engine.start();
+                isRunning = true;
+                console.log('游戏开始');
+            }
+        }
+
+        function resetGame() {
+            if (engine) {
+                engine.stop();
+                isRunning = false;
+            }
+            
+            setTimeout(() => {
+                init();
+                console.log('游戏重置');
+            }, 100);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+        });
+
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            console.error('错误:', e.message, '在', e.filename + ':' + e.lineno);
+        });
+    </script>
+</body>
+</html>

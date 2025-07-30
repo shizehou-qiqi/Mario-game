@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单交互测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .info {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+        
+        .status {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .health { color: #ff0000; }
+        .score { color: #0000ff; }
+        .invulnerable { color: #ff8800; }
+    </style>
+</head>
+<body>
+    <h1>简单玩家敌人交互测试</h1>
+    
+    <div class="info">
+        <p><strong>测试说明：</strong></p>
+        <p>1. 使用方向键移动，空格键跳跃</p>
+        <p>2. 从上方跳到敌人身上可以击败敌人并获得分数</p>
+        <p>3. 从侧面接触敌人会受伤并进入无敌状态</p>
+        <p>4. 无敌状态下玩家会闪烁</p>
+    </div>
+    
+    <div class="status">
+        <div class="health">生命值: <span id="health">3/3</span></div>
+        <div class="score">分数: <span id="score">0</span></div>
+        <div class="invulnerable">无敌: <span id="invulnerable">否</span></div>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <!-- 引入必要的脚本文件 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/gameEngine.js"></script>
+
+    <script>
+        let gameEngine;
+        let player;
+        let platforms = [];
+        let enemies = [];
+
+        // UI元素
+        const healthDisplay = document.getElementById('health');
+        const scoreDisplay = document.getElementById('score');
+        const invulnerableDisplay = document.getElementById('invulnerable');
+
+        function init() {
+            console.log('初始化简单交互测试...');
+            
+            const canvas = document.getElementById('gameCanvas');
+            gameEngine = new GameEngine(canvas);
+            gameEngine.init();
+            
+            // 创建输入管理器
+            window.inputManager = new InputManager();
+            window.inputManager.init();
+            
+            // 创建地面平台
+            const groundPlatform = new Platform(0, 550, 800, 50);
+            platforms.push(groundPlatform);
+            gameEngine.addGameObject(groundPlatform);
+            
+            // 创建一个测试平台
+            const testPlatform = new Platform(300, 400, 200, 20);
+            platforms.push(testPlatform);
+            gameEngine.addGameObject(testPlatform);
+            
+            // 创建玩家
+            player = new Player(100, 500);
+            gameEngine.addGameObject(player);
+            
+            // 创建几个敌人
+            const enemy1 = new Goomba(400, 520);
+            enemies.push(enemy1);
+            gameEngine.addGameObject(enemy1);
+            
+            const enemy2 = new Goomba(350, 370);
+            enemies.push(enemy2);
+            gameEngine.addGameObject(enemy2);
+            
+            // 设置事件监听器
+            setupEvents();
+            
+            // 启动游戏
+            gameEngine.start();
+            
+            // 定期更新UI
+            setInterval(updateUI, 100);
+            
+            console.log('测试初始化完成');
+        }
+        
+        function setupEvents() {
+            // 监听玩家受伤事件
+            window.gameEvents.on('playerHurt', (data) => {
+                console.log('玩家受伤！', data);
+            });
+            
+            // 监听敌人被击败事件
+            window.gameEvents.on('enemyDefeated', (data) => {
+                console.log('敌人被击败！', data);
+            });
+            
+            // 监听分数变化事件
+            window.gameEvents.on('scoreChanged', (data) => {
+                console.log('分数变化！', data);
+            });
+        }
+        
+        function updateUI() {
+            if (player) {
+                healthDisplay.textContent = `${player.getHealth()}/${player.getMaxHealth()}`;
+                scoreDisplay.textContent = player.getScore();
+                invulnerableDisplay.textContent = player.isInvulnerableState() ? '是' : '否';
+            }
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+        
+        console.log('简单交互测试脚本加载完成');
+    </script>
+</body>
+</html>

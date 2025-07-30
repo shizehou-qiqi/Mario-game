@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关卡系统测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+            background: #87CEEB;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .info {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .debug {
+            font-family: monospace;
+            font-size: 12px;
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>关卡系统和平台测试</h1>
+        
+        <div class="info">
+            <h3>测试说明：</h3>
+            <p>• 使用方向键 ← → 移动马里奥</p>
+            <p>• 使用空格键跳跃</p>
+            <p>• 相机会跟随玩家移动</p>
+            <p>• 关卡包含多种类型的平台</p>
+            <p>• 在URL后添加 ?debug=true 查看调试信息</p>
+        </div>
+        
+        <div class="controls">
+            <button onclick="startTest()">开始测试</button>
+            <button onclick="resetTest()">重置</button>
+            <button onclick="toggleDebug()">切换调试</button>
+        </div>
+        
+        <canvas id="testCanvas" width="800" height="600"></canvas>
+        
+        <div class="debug" id="debugOutput"></div>
+    </div>
+
+    <!-- 加载所有必需的脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+
+    <script>
+        // 测试变量
+        let testCanvas;
+        let testEngine;
+        let testLevel;
+        let testPlayer;
+        let testInputManager;
+        let debugOutput;
+        let isRunning = false;
+
+        // 初始化测试
+        function initTest() {
+            console.log('初始化关卡系统测试...');
+            
+            testCanvas = document.getElementById('testCanvas');
+            debugOutput = document.getElementById('debugOutput');
+            
+            if (!testCanvas.getContext('2d')) {
+                alert('浏览器不支持Canvas！');
+                return;
+            }
+
+            // 创建输入管理器
+            testInputManager = new InputManager();
+            window.inputManager = testInputManager;
+
+            // 创建游戏引擎
+            testEngine = new GameEngine(testCanvas);
+            testEngine.init();
+
+            // 创建关卡
+            testLevel = new Level();
+            testLevel.loadLevel();
+            window.currentLevel = testLevel;
+
+            // 将关卡对象添加到引擎
+            const levelObjects = testLevel.getAllObjects();
+            levelObjects.forEach(obj => {
+                testEngine.addGameObject(obj);
+            });
+
+            // 创建玩家
+            const spawnPoint = testLevel.getSpawnPoint();
+            testPlayer = new Player(spawnPoint.x, spawnPoint.y);
+            testEngine.addGameObject(testPlayer);
+
+            // 设置相机跟随
+            testLevel.setCameraTarget(testPlayer);
+
+            log('测试初始化完成');
+            log(`关卡信息: ${JSON.stringify(testLevel.getLevelInfo())}`);
+        }
+
+        // 开始测试
+        function startTest() {
+            if (!testEngine) {
+                initTest();
+            }
+
+            if (!isRunning) {
+                testEngine.start();
+                isRunning = true;
+                log('测试开始运行');
+            }
+        }
+
+        // 重置测试
+        function resetTest() {
+            if (testEngine) {
+                testEngine.stop();
+                isRunning = false;
+            }
+            
+            // 重新初始化
+            setTimeout(() => {
+                initTest();
+                log('测试已重置');
+            }, 100);
+        }
+
+        // 切换调试模式
+        function toggleDebug() {
+            const currentUrl = new URL(window.location);
+            if (currentUrl.searchParams.has('debug')) {
+                currentUrl.searchParams.delete('debug');
+            } else {
+                currentUrl.searchParams.set('debug', 'true');
+            }
+            window.location.href = currentUrl.toString();
+        }
+
+        // 日志输出
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugOutput.innerHTML += `[${timestamp}] ${message}\n`;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+            console.log(message);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            log('页面加载完成，准备初始化测试...');
+            initTest();
+        });
+
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            log(`错误: ${e.message} 在 ${e.filename}:${e.lineno}`);
+        });
+    </script>
+</body>
+</html>

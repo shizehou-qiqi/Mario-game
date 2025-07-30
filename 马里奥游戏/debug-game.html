@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马里奥游戏调试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #gameContainer {
+            background: white;
+            border: 2px solid #333;
+            display: inline-block;
+            position: relative;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: #87CEEB;
+        }
+        
+        #debugInfo {
+            margin-top: 20px;
+            padding: 10px;
+            background: #333;
+            color: white;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        #controls {
+            margin-top: 10px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>马里奥游戏调试 🔧</h1>
+    
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+    
+    <div id="controls">
+        <button onclick="startDebugGame()">开始游戏</button>
+        <button onclick="showGameObjects()">显示游戏对象</button>
+        <button onclick="testInput()">测试输入</button>
+        <button onclick="showPlayerStatus()">显示玩家状态</button>
+        <button onclick="clearDebug()">清除调试信息</button>
+    </div>
+    
+    <div id="debugInfo">调试信息将在这里显示...</div>
+
+    <!-- 加载所有必要的脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/goomba.js"></script>
+    <script src="js/coin.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+
+    <script>
+        let gameEngine;
+        let currentLevel;
+        let player;
+        let inputManager;
+        let scoreManager;
+        let hudManager;
+        let gameStateManager;
+        
+        function log(message) {
+            const debugInfo = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugInfo.textContent += `[${timestamp}] ${message}\n`;
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearDebug() {
+            document.getElementById('debugInfo').textContent = '';
+        }
+        
+        function startDebugGame() {
+            log('🎮 开始调试游戏...');
+            
+            try {
+                // 初始化游戏引擎
+                const canvas = document.getElementById('gameCanvas');
+                gameEngine = new GameEngine(canvas);
+                gameEngine.init();
+                log('✅ 游戏引擎初始化成功');
+                
+                // 初始化输入管理器
+                inputManager = new InputManager();
+                inputManager.init();
+                window.inputManager = inputManager;
+                log('✅ 输入管理器初始化成功');
+                log(`✅ window.inputManager 设置成功: ${!!window.inputManager}`);
+                
+                // 初始化分数管理器
+                scoreManager = new ScoreManager();
+                log('✅ 分数管理器初始化成功');
+                
+                // 创建关卡
+                currentLevel = new Level();
+                currentLevel.loadLevel();
+                log(`✅ 关卡创建成功，包含 ${currentLevel.getAllObjects().length} 个对象`);
+                
+                // 将关卡对象添加到游戏引擎
+                const levelObjects = currentLevel.getAllObjects();
+                levelObjects.forEach(obj => {
+                    gameEngine.addGameObject(obj);
+                });
+                log(`✅ ${levelObjects.length} 个关卡对象添加到游戏引擎`);
+                
+                // 创建玩家
+                const spawnPoint = currentLevel.getSpawnPoint();
+                player = new Player(spawnPoint.x, spawnPoint.y);
+                player.init(); // 🔧 重要：初始化玩家
+                gameEngine.addGameObject(player);
+                log(`✅ 玩家创建成功，位置: (${spawnPoint.x}, ${spawnPoint.y})`);
+                
+                // 设置相机跟随
+                currentLevel.setCameraTarget(player);
+                log('✅ 相机设置成功');
+                
+                // 创建HUD
+                hudManager = new HUDManager(scoreManager);
+                gameEngine.addGameObject(hudManager);
+                log('✅ HUD管理器创建成功');
+                
+                // 启动游戏引擎
+                gameEngine.start();
+                log('✅ 游戏引擎启动成功');
+                
+                log('🎉 游戏调试启动完成！');
+                
+            } catch (error) {
+                log(`❌ 错误: ${error.message}`);
+                console.error(error);
+            }
+        }
+        
+        function showGameObjects() {
+            if (!gameEngine) {
+                log('❌ 游戏引擎未初始化');
+                return;
+            }
+            
+            log('📋 当前游戏对象列表:');
+            gameEngine.gameObjects.forEach((obj, index) => {
+                log(`  ${index}: ${obj.tag || obj.constructor.name} at (${obj.position.x.toFixed(1)}, ${obj.position.y.toFixed(1)})`);
+            });
+            log(`总计: ${gameEngine.gameObjects.length} 个对象`);
+        }
+        
+        function testInput() {
+            if (!inputManager) {
+                log('❌ 输入管理器未初始化');
+                return;
+            }
+
+            log('🎮 测试输入系统...');
+            log(`左键状态 (ArrowLeft): ${inputManager.isKeyPressed('ArrowLeft')}`);
+            log(`右键状态 (ArrowRight): ${inputManager.isKeyPressed('ArrowRight')}`);
+            log(`空格键状态 (Space): ${inputManager.isKeyPressed('Space')}`);
+            log(`上键状态 (ArrowUp): ${inputManager.isKeyPressed('ArrowUp')}`);
+            log(`ESC键状态 (Escape): ${inputManager.isKeyPressed('Escape')}`);
+            log('请按键盘按键测试...');
+
+            // 显示当前所有按下的键
+            const pressedKeys = Object.keys(inputManager.keys).filter(key => inputManager.keys[key]);
+            if (pressedKeys.length > 0) {
+                log(`当前按下的键: ${pressedKeys.join(', ')}`);
+            } else {
+                log('当前没有按键被按下');
+            }
+        }
+
+        function showPlayerStatus() {
+            if (!player) {
+                log('❌ 玩家未创建');
+                return;
+            }
+
+            log('👤 玩家状态:');
+            log(`  位置: (${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)})`);
+            log(`  速度: (${player.velocity.x.toFixed(1)}, ${player.velocity.y.toFixed(1)})`);
+            log(`  是否在地面: ${player.isGrounded}`);
+            log(`  输入状态:`);
+            log(`    左: ${player.inputState.left}`);
+            log(`    右: ${player.inputState.right}`);
+            log(`    跳跃: ${player.inputState.jump}`);
+            log(`    跳跃按下: ${player.inputState.jumpPressed}`);
+            log(`  移动速度: ${player.moveSpeed}`);
+            log(`  最大速度: ${player.maxSpeed}`);
+        }
+        
+        // 页面加载完成后的初始化
+        window.addEventListener('load', () => {
+            log('🚀 页面加载完成，准备调试');
+        });
+    </script>
+</body>
+</html>

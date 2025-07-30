@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单玩家测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+        }
+        .info {
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>简单玩家测试</h1>
+        <p>使用方向键移动，空格键跳跃</p>
+        <button onclick="startTest()">开始测试</button>
+    </div>
+    
+    <canvas id="canvas" width="800" height="600"></canvas>
+    
+    <div class="info" id="debug">
+        调试信息...
+    </div>
+
+    <script>
+        // 简单的输入管理
+        const keys = {};
+        const previousKeys = {};
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            e.preventDefault();
+        });
+        
+        function isKeyPressed(keyCode) {
+            return !!keys[keyCode];
+        }
+        
+        function isKeyJustPressed(keyCode) {
+            return !!keys[keyCode] && !previousKeys[keyCode];
+        }
+        
+        function updateKeys() {
+            Object.assign(previousKeys, keys);
+        }
+
+        // 简单的玩家类
+        class SimplePlayer {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.width = 32;
+                this.height = 32;
+                this.speed = 200;
+                this.jumpPower = 400;
+                this.isGrounded = false;
+                this.facingRight = true;
+            }
+            
+            update(deltaTime) {
+                // 处理输入
+                this.vx = 0;
+                if (isKeyPressed('ArrowLeft')) {
+                    this.vx = -this.speed;
+                    this.facingRight = false;
+                }
+                if (isKeyPressed('ArrowRight')) {
+                    this.vx = this.speed;
+                    this.facingRight = true;
+                }
+                
+                // 跳跃
+                if (isKeyJustPressed('Space') && this.isGrounded) {
+                    this.vy = -this.jumpPower;
+                    this.isGrounded = false;
+                }
+                
+                // 重力
+                this.vy += 980 * deltaTime;
+                
+                // 更新位置
+                this.x += this.vx * deltaTime;
+                this.y += this.vy * deltaTime;
+                
+                // 地面碰撞
+                if (this.y + this.height >= 550) {
+                    this.y = 550 - this.height;
+                    this.vy = 0;
+                    this.isGrounded = true;
+                }
+                
+                // 边界检查
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > 800) this.x = 800 - this.width;
+            }
+            
+            render(ctx) {
+                // 绘制简单的马里奥
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // 绘制眼睛
+                ctx.fillStyle = '#000000';
+                const eyeY = this.y + 8;
+                if (this.facingRight) {
+                    ctx.fillRect(this.x + 20, eyeY, 4, 4);
+                    ctx.fillRect(this.x + 26, eyeY, 2, 2);
+                } else {
+                    ctx.fillRect(this.x + 6, eyeY, 2, 2);
+                    ctx.fillRect(this.x + 8, eyeY, 4, 4);
+                }
+            }
+        }
+
+        let canvas, ctx, player, lastTime = 0, running = false;
+
+        function startTest() {
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            player = new SimplePlayer(100, 400);
+            running = true;
+            lastTime = performance.now();
+            gameLoop();
+        }
+
+        function gameLoop(currentTime) {
+            if (!running) return;
+            
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            // 更新
+            updateKeys();
+            player.update(deltaTime);
+            
+            // 渲染
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, 800, 600);
+            
+            // 地面
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, 550, 800, 50);
+            
+            player.render(ctx);
+            
+            // 调试信息
+            document.getElementById('debug').innerHTML = `
+                位置: (${Math.round(player.x)}, ${Math.round(player.y)})<br>
+                速度: (${Math.round(player.vx)}, ${Math.round(player.vy)})<br>
+                着地: ${player.isGrounded}<br>
+                按键: ${Object.keys(keys).filter(k => keys[k]).join(', ')}
+            `;
+            
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>

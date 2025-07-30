@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>敌人系统测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+            background-color: #87CEEB;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .debug-info {
+            font-family: monospace;
+            font-size: 12px;
+            background-color: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>敌人系统测试</h1>
+        
+        <div class="info">
+            <h3>测试说明：</h3>
+            <ul>
+                <li>红色方块是玩家（马里奥）</li>
+                <li>棕色蘑菇形状是Goomba敌人</li>
+                <li>使用方向键移动玩家，空格键跳跃</li>
+                <li>观察敌人的巡逻行为和平台边缘检测</li>
+                <li>尝试从上方跳到敌人身上击败它们</li>
+                <li>添加 ?debug=true 到URL查看调试信息</li>
+            </ul>
+        </div>
+        
+        <div class="controls">
+            <button onclick="startTest()">开始测试</button>
+            <button onclick="stopTest()">停止测试</button>
+            <button onclick="resetTest()">重置测试</button>
+            <button onclick="toggleDebug()">切换调试模式</button>
+        </div>
+        
+        <canvas id="testCanvas" width="800" height="600"></canvas>
+        
+        <div id="debugInfo" class="debug-info" style="display: none;"></div>
+    </div>
+
+    <!-- 游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+
+    <script>
+        // 测试变量
+        let testCanvas;
+        let testEngine;
+        let testInputManager;
+        let testPlayer;
+        let testLevel;
+        let testEnemies = [];
+        let isTestRunning = false;
+        let debugMode = false;
+
+        // 初始化测试
+        function initTest() {
+            console.log('初始化敌人系统测试...');
+            
+            testCanvas = document.getElementById('testCanvas');
+            
+            // 初始化输入管理器
+            testInputManager = new InputManager();
+            window.inputManager = testInputManager;
+            
+            // 初始化游戏引擎
+            testEngine = new GameEngine(testCanvas);
+            testEngine.init();
+            
+            console.log('敌人系统测试初始化完成');
+        }
+
+        // 开始测试
+        function startTest() {
+            if (isTestRunning) {
+                console.log('测试已在运行中');
+                return;
+            }
+            
+            console.log('开始敌人系统测试...');
+            isTestRunning = true;
+            
+            // 创建测试关卡
+            createTestLevel();
+            
+            // 创建测试玩家
+            createTestPlayer();
+            
+            // 创建测试敌人
+            createTestEnemies();
+            
+            // 启动游戏引擎
+            testEngine.start();
+            
+            // 开始调试信息更新
+            if (debugMode) {
+                startDebugUpdate();
+            }
+        }
+
+        // 停止测试
+        function stopTest() {
+            if (!isTestRunning) {
+                console.log('测试未在运行');
+                return;
+            }
+            
+            console.log('停止敌人系统测试');
+            isTestRunning = false;
+            testEngine.stop();
+        }
+
+        // 重置测试
+        function resetTest() {
+            stopTest();
+            
+            // 清理对象
+            testEnemies = [];
+            testPlayer = null;
+            testLevel = null;
+            
+            // 重新开始
+            setTimeout(() => {
+                startTest();
+            }, 100);
+        }
+
+        // 创建测试关卡
+        function createTestLevel() {
+            const levelData = {
+                width: 1600,
+                height: 600,
+                spawn: { x: 50, y: 400 },
+                goal: { x: 1500, y: 400 },
+                platforms: [
+                    // 主地面
+                    { x: 0, y: 550, width: 400, height: 50, type: 'ground' },
+                    { x: 500, y: 550, width: 300, height: 50, type: 'ground' },
+                    { x: 900, y: 550, width: 400, height: 50, type: 'ground' },
+                    { x: 1400, y: 550, width: 200, height: 50, type: 'ground' },
+                    
+                    // 悬浮平台（用于测试边缘检测）
+                    { x: 200, y: 450, width: 120, height: 20, type: 'brick' },
+                    { x: 400, y: 350, width: 100, height: 20, type: 'stone' },
+                    { x: 600, y: 450, width: 80, height: 20, type: 'wood' },
+                    { x: 800, y: 350, width: 120, height: 20, type: 'brick' },
+                    { x: 1000, y: 450, width: 100, height: 20, type: 'stone' },
+                    { x: 1200, y: 350, width: 80, height: 20, type: 'wood' }
+                ],
+                enemies: [
+                    { x: 250, y: 500, type: 'goomba' },
+                    { x: 450, y: 300, type: 'goomba' },
+                    { x: 650, y: 400, type: 'goomba' },
+                    { x: 850, y: 300, type: 'goomba' },
+                    { x: 1050, y: 400, type: 'goomba' },
+                    { x: 1250, y: 300, type: 'goomba' }
+                ]
+            };
+            
+            testLevel = new Level(levelData);
+            testLevel.loadLevel();
+            window.currentLevel = testLevel;
+            
+            // 添加关卡对象到引擎
+            const levelObjects = testLevel.getAllObjects();
+            levelObjects.forEach(obj => {
+                testEngine.addGameObject(obj);
+            });
+            
+            console.log('测试关卡创建完成');
+        }
+
+        // 创建测试玩家
+        function createTestPlayer() {
+            const spawnPoint = testLevel.getSpawnPoint();
+            testPlayer = new Player(spawnPoint.x, spawnPoint.y);
+            testEngine.addGameObject(testPlayer);
+            
+            // 设置相机跟随
+            testLevel.setCameraTarget(testPlayer);
+            
+            console.log('测试玩家创建完成');
+        }
+
+        // 创建测试敌人
+        function createTestEnemies() {
+            testEnemies = testLevel.getEnemies();
+            console.log(`创建了 ${testEnemies.length} 个测试敌人`);
+            
+            // 为每个敌人设置不同的属性进行测试
+            testEnemies.forEach((enemy, index) => {
+                // 设置不同的巡逻距离
+                enemy.setPatrolDistance(60 + (index * 20));
+                
+                // 设置不同的移动速度
+                enemy.setMoveSpeed(25 + (index * 5));
+                
+                // 随机初始方向
+                enemy.direction = Math.random() > 0.5 ? 1 : -1;
+            });
+        }
+
+        // 切换调试模式
+        function toggleDebug() {
+            debugMode = !debugMode;
+            const debugInfo = document.getElementById('debugInfo');
+            
+            if (debugMode) {
+                debugInfo.style.display = 'block';
+                if (isTestRunning) {
+                    startDebugUpdate();
+                }
+            } else {
+                debugInfo.style.display = 'none';
+            }
+            
+            console.log('调试模式:', debugMode ? '开启' : '关闭');
+        }
+
+        // 开始调试信息更新
+        function startDebugUpdate() {
+            if (!debugMode || !isTestRunning) return;
+            
+            updateDebugInfo();
+            setTimeout(startDebugUpdate, 100); // 每100ms更新一次
+        }
+
+        // 更新调试信息
+        function updateDebugInfo() {
+            if (!debugMode) return;
+            
+            const debugInfo = document.getElementById('debugInfo');
+            let info = '=== 敌人系统调试信息 ===\n\n';
+            
+            // 引擎信息
+            info += `FPS: ${testEngine.getFPS()}\n`;
+            info += `游戏对象数量: ${testEngine.gameObjects.length}\n\n`;
+            
+            // 玩家信息
+            if (testPlayer) {
+                const playerStatus = testPlayer.getStatus();
+                info += '玩家状态:\n';
+                info += `  位置: (${Math.round(playerStatus.position.x)}, ${Math.round(playerStatus.position.y)})\n`;
+                info += `  速度: (${playerStatus.velocity.x.toFixed(1)}, ${playerStatus.velocity.y.toFixed(1)})\n`;
+                info += `  着地: ${playerStatus.isGrounded}\n`;
+                info += `  动画: ${playerStatus.animationState}\n\n`;
+            }
+            
+            // 敌人信息
+            info += '敌人状态:\n';
+            testEnemies.forEach((enemy, index) => {
+                if (enemy && !enemy.destroyed) {
+                    const status = enemy.getStatus();
+                    info += `  敌人${index + 1} (${status.type}):\n`;
+                    info += `    位置: (${Math.round(status.position.x)}, ${Math.round(status.position.y)})\n`;
+                    info += `    方向: ${status.direction > 0 ? '右' : '左'}\n`;
+                    info += `    状态: ${status.patrolState}\n`;
+                    info += `    存活: ${status.isAlive}\n`;
+                    info += `    着地: ${status.isGrounded}\n`;
+                }
+            });
+            
+            debugInfo.textContent = info;
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initTest);
+    </script>
+</body>
+</html>

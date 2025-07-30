@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameObject测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        .test-info {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <h1>GameObject基类测试</h1>
+        <p>测试Vector2D类、GameObject基类和精灵渲染系统</p>
+        <p>添加 ?debug=true 到URL查看调试信息</p>
+    </div>
+    
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="addTestObject()">添加测试对象</button>
+        <button onclick="clearObjects()">清空对象</button>
+        <button onclick="toggleDebug()">切换调试模式</button>
+    </div>
+    
+    <div class="test-info">
+        <p id="objectCount">对象数量: 0</p>
+        <p id="fpsDisplay">FPS: 0</p>
+    </div>
+    
+    <script src="js/vector2d.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/gameEngine.js"></script>
+    
+    <script>
+        let testCanvas;
+        let testEngine;
+        let objectCount = 0;
+        
+        // 测试GameObject子类
+        class TestObject extends GameObject {
+            constructor(x, y) {
+                super(x, y, 30, 30);
+                this.tag = 'TestObject';
+                this.color = this.getRandomColor();
+                this.setVelocity(
+                    (Math.random() - 0.5) * 200,
+                    (Math.random() - 0.5) * 200
+                );
+                this.rotationSpeed = (Math.random() - 0.5) * 5;
+                this.lifetime = 15; // 15秒生命周期
+                objectCount++;
+            }
+            
+            onUpdate(deltaTime) {
+                // 旋转
+                this.rotation += this.rotationSpeed * deltaTime;
+                
+                // 边界反弹
+                if (this.position.x <= 0 || this.position.x + this.size.x >= testCanvas.width) {
+                    this.velocity.x *= -0.8; // 能量损失
+                    this.position.x = Math.max(0, Math.min(testCanvas.width - this.size.x, this.position.x));
+                }
+                
+                if (this.position.y <= 0 || this.position.y + this.size.y >= testCanvas.height) {
+                    this.velocity.y *= -0.8; // 能量损失
+                    this.position.y = Math.max(0, Math.min(testCanvas.height - this.size.y, this.position.y));
+                }
+                
+                // 生命周期
+                this.lifetime -= deltaTime;
+                if (this.lifetime <= 0) {
+                    this.destroy();
+                    objectCount--;
+                }
+                
+                // 透明度变化
+                this.alpha = Math.max(0.1, this.lifetime / 15);
+                
+                // 大小变化
+                const scale = 0.5 + (this.lifetime / 15) * 0.5;
+                this.scale.set(scale, scale);
+            }
+            
+            onRender(context, interpolation) {
+                // 绘制生命周期文本
+                context.fillStyle = '#000000';
+                context.font = '10px Arial';
+                context.textAlign = 'center';
+                context.fillText(this.lifetime.toFixed(1), 0, -20);
+            }
+            
+            getRandomColor() {
+                const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A80', '#82B1FF'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+        }
+        
+        // 初始化测试
+        function initTest() {
+            testCanvas = document.getElementById('testCanvas');
+            testEngine = new GameEngine(testCanvas);
+            testEngine.init();
+            testEngine.start();
+            
+            // 添加一些初始对象
+            for (let i = 0; i < 5; i++) {
+                addTestObject();
+            }
+            
+            // 更新UI
+            setInterval(updateUI, 100);
+            
+            console.log('GameObject测试初始化完成');
+        }
+        
+        function addTestObject() {
+            const x = Math.random() * (testCanvas.width - 30);
+            const y = Math.random() * (testCanvas.height - 30);
+            const testObj = new TestObject(x, y);
+            testEngine.addGameObject(testObj);
+        }
+        
+        function clearObjects() {
+            // 销毁所有测试对象
+            testEngine.gameObjects.forEach(obj => {
+                if (obj.tag === 'TestObject') {
+                    obj.destroy();
+                    objectCount--;
+                }
+            });
+        }
+        
+        function toggleDebug() {
+            const url = new URL(window.location);
+            if (url.searchParams.has('debug')) {
+                url.searchParams.delete('debug');
+            } else {
+                url.searchParams.set('debug', 'true');
+            }
+            window.location.href = url.toString();
+        }
+        
+        function updateUI() {
+            document.getElementById('objectCount').textContent = `对象数量: ${testEngine.gameObjects.length}`;
+            document.getElementById('fpsDisplay').textContent = `FPS: ${testEngine.getFPS()}`;
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initTest);
+        
+        // 鼠标点击添加对象
+        document.getElementById('testCanvas').addEventListener('click', function(event) {
+            const rect = testCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const testObj = new TestObject(x - 15, y - 15);
+            testEngine.addGameObject(testObj);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequential Testing</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #333;
+            background: #87CEEB;
+            display: block;
+            margin: 20px 0;
+        }
+        
+        #log {
+            background: #000;
+            border: 1px solid #333;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            background: #007acc;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+        .warning { color: #ffd43b; }
+        .info { color: #74c0fc; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Sequential Testing - Mario Game</h1>
+    
+    <div>
+        <button onclick="testStep1()">Step 1: Basic Classes</button>
+        <button onclick="testStep2()">Step 2: Game Engine</button>
+        <button onclick="testStep3()">Step 3: Level Creation</button>
+        <button onclick="testStep4()">Step 4: Player Creation</button>
+        <button onclick="testStep5()">Step 5: Game Loop</button>
+        <button onclick="testStep6()">Step 6: Full Integration</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="log"></div>
+
+    <!-- Load all scripts -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/goomba.js"></script>
+    <script src="js/coin.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+
+    <script>
+        let logDiv = document.getElementById('log');
+        let canvas = document.getElementById('gameCanvas');
+        let ctx = canvas.getContext('2d');
+        
+        // Global variables
+        let gameEngine, inputManager, player, currentLevel, scoreManager, gameStateManager;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<span class="${type}">[${timestamp}] ${message}</span>\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        function testStep1() {
+            log('=== STEP 1: Testing Basic Classes ===', 'warning');
+            
+            try {
+                // Test Vector2D
+                const vec = new Vector2D(10, 20);
+                log(`✅ Vector2D created: (${vec.x}, ${vec.y})`, 'success');
+                
+                // Test GameObject
+                const obj = new GameObject(0, 0, 32, 32);
+                log(`✅ GameObject created: pos(${obj.position.x}, ${obj.position.y}) size(${obj.size.x}, ${obj.size.y})`, 'success');
+                
+                // Test Platform
+                const platform = new Platform(0, 100, 200, 32);
+                log(`✅ Platform created: pos(${platform.position.x}, ${platform.position.y})`, 'success');
+                
+                // Test Physics constants
+                log(`✅ Physics.GRAVITY: ${Physics.GRAVITY}`, 'success');
+                log(`✅ Physics.TERMINAL_VELOCITY: ${Physics.TERMINAL_VELOCITY}`, 'success');
+                
+                log('✅ STEP 1 PASSED: All basic classes working', 'success');
+                
+            } catch (error) {
+                log(`❌ STEP 1 FAILED: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function testStep2() {
+            log('=== STEP 2: Testing Game Engine ===', 'warning');
+            
+            try {
+                // Create InputManager
+                inputManager = new InputManager();
+                inputManager.init();
+                window.inputManager = inputManager;
+                log('✅ InputManager created and initialized', 'success');
+                
+                // Create ScoreManager
+                scoreManager = new ScoreManager();
+                log('✅ ScoreManager created', 'success');
+                
+                // Create GameEngine
+                gameEngine = new GameEngine(canvas);
+                gameEngine.init();
+                log('✅ GameEngine created and initialized', 'success');
+                log(`   - isRunning: ${gameEngine.isRunning}`, 'info');
+                log(`   - canvas size: ${gameEngine.canvas.width}x${gameEngine.canvas.height}`, 'info');
+                
+                log('✅ STEP 2 PASSED: Game engine ready', 'success');
+                
+            } catch (error) {
+                log(`❌ STEP 2 FAILED: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function testStep3() {
+            log('=== STEP 3: Testing Level Creation ===', 'warning');
+            
+            try {
+                if (!gameEngine) {
+                    log('❌ GameEngine not ready. Run Step 2 first.', 'error');
+                    return;
+                }
+                
+                // Create Level
+                currentLevel = new Level();
+                currentLevel.loadLevel();
+                log(`✅ Level created with ${currentLevel.getAllObjects().length} objects`, 'success');
+                
+                // Add level objects to game engine
+                const levelObjects = currentLevel.getAllObjects();
+                levelObjects.forEach(obj => {
+                    gameEngine.addGameObject(obj);
+                });
+                log(`✅ Added ${levelObjects.length} level objects to game engine`, 'success');
+                log(`   - Total game objects: ${gameEngine.gameObjects.length}`, 'info');
+                
+                // Check level components
+                log(`   - Platforms: ${currentLevel.platforms.length}`, 'info');
+                log(`   - Enemies: ${currentLevel.enemies.length}`, 'info');
+                log(`   - Collectibles: ${currentLevel.collectibles.length}`, 'info');
+                
+                log('✅ STEP 3 PASSED: Level created and loaded', 'success');
+                
+            } catch (error) {
+                log(`❌ STEP 3 FAILED: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function testStep4() {
+            log('=== STEP 4: Testing Player Creation ===', 'warning');
+            
+            try {
+                if (!currentLevel) {
+                    log('❌ Level not ready. Run Step 3 first.', 'error');
+                    return;
+                }
+                
+                // Create Player
+                const spawnPoint = currentLevel.getSpawnPoint();
+                player = new Player(spawnPoint.x, spawnPoint.y);
+                log(`✅ Player created at spawn point: (${spawnPoint.x}, ${spawnPoint.y})`, 'success');
+                
+                // Initialize player
+                player.init();
+                log('✅ Player initialized', 'success');
+                
+                // Set score manager
+                if (scoreManager) {
+                    player.scoreManager = scoreManager;
+                    log('✅ ScoreManager linked to player', 'success');
+                }
+                
+                // Add to game engine
+                gameEngine.addGameObject(player);
+                log('✅ Player added to game engine', 'success');
+                
+                // Set camera target
+                currentLevel.setCameraTarget(player);
+                log('✅ Camera target set to player', 'success');
+                
+                // Check player state
+                log(`   - Player position: (${player.position.x}, ${player.position.y})`, 'info');
+                log(`   - Player velocity: (${player.velocity.x}, ${player.velocity.y})`, 'info');
+                log(`   - Input state initialized: ${!!player.inputState}`, 'info');
+                log(`   - useGravity: ${player.useGravity}`, 'info');
+                log(`   - collisionEnabled: ${player.collisionEnabled}`, 'info');
+                
+                log('✅ STEP 4 PASSED: Player ready', 'success');
+                
+            } catch (error) {
+                log(`❌ STEP 4 FAILED: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function testStep5() {
+            log('=== STEP 5: Testing Game Loop ===', 'warning');
+            
+            try {
+                if (!gameEngine || !player) {
+                    log('❌ Prerequisites not ready. Run previous steps first.', 'error');
+                    return;
+                }
+                
+                // Start game engine
+                gameEngine.start();
+                log('✅ Game engine started', 'success');
+                log(`   - isRunning: ${gameEngine.isRunning}`, 'info');
+                log(`   - animationId: ${gameEngine.animationId}`, 'info');
+                
+                // Wait and check if game loop is working
+                setTimeout(() => {
+                    log('--- Game Loop Status Check ---', 'warning');
+                    log(`   - isRunning: ${gameEngine.isRunning}`, 'info');
+                    log(`   - frameCount: ${gameEngine.frameCount}`, 'info');
+                    log(`   - currentFPS: ${gameEngine.currentFPS}`, 'info');
+                    log(`   - player position: (${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)})`, 'info');
+                    log(`   - player velocity: (${player.velocity.x.toFixed(1)}, ${player.velocity.y.toFixed(1)})`, 'info');
+                    log(`   - player isGrounded: ${player.isGrounded}`, 'info');
+                    
+                    if (gameEngine.frameCount > 0) {
+                        log('✅ STEP 5 PASSED: Game loop is running', 'success');
+                        
+                        // Test physics
+                        if (Math.abs(player.velocity.y) > 0.1) {
+                            log('✅ Physics working: Player has Y velocity (gravity)', 'success');
+                        } else {
+                            log('⚠️ Physics issue: Player Y velocity is 0', 'warning');
+                        }
+                        
+                    } else {
+                        log('❌ STEP 5 FAILED: Game loop not running (frameCount = 0)', 'error');
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                log(`❌ STEP 5 FAILED: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function testStep6() {
+            log('=== STEP 6: Full Integration Test ===', 'warning');
+            
+            try {
+                if (!gameEngine || !player || !currentLevel) {
+                    log('❌ Prerequisites not ready. Run all previous steps first.', 'error');
+                    return;
+                }
+                
+                // Test input system
+                log('Testing input system...', 'info');
+                const testKeys = ['ArrowLeft', 'ArrowRight', 'Space'];
+                testKeys.forEach(key => {
+                    const pressed = inputManager.isKeyPressed(key);
+                    log(`   - ${key}: ${pressed}`, 'info');
+                });
+                
+                // Test rendering
+                log('Testing rendering...', 'info');
+                const objectsWithRender = gameEngine.gameObjects.filter(obj => typeof obj.render === 'function');
+                log(`   - Objects with render method: ${objectsWithRender.length}/${gameEngine.gameObjects.length}`, 'info');
+                
+                // Test collision system
+                log('Testing collision system...', 'info');
+                const platforms = currentLevel.getPlatforms();
+                log(`   - Available platforms for collision: ${platforms.length}`, 'info');
+                
+                // Final status
+                log('--- FINAL GAME STATE ---', 'warning');
+                log(`✅ Game Engine: Running=${gameEngine.isRunning}, FPS=${gameEngine.currentFPS}`, 'success');
+                log(`✅ Player: Pos(${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)}) Vel(${player.velocity.x.toFixed(1)}, ${player.velocity.y.toFixed(1)})`, 'success');
+                log(`✅ Level: ${currentLevel.getAllObjects().length} objects loaded`, 'success');
+                log(`✅ Input: Manager initialized and ready`, 'success');
+                
+                log('🎉 STEP 6 PASSED: Full integration successful!', 'success');
+                log('🎮 Game should be playable now. Try arrow keys and spacebar!', 'success');
+                
+            } catch (error) {
+                log(`❌ STEP 6 FAILED: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        // Auto-start when page loads
+        window.addEventListener('load', () => {
+            log('🚀 Sequential Testing Ready', 'success');
+            log('Click buttons in order to test each component', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务14验证 - 游戏优化和完善</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .game-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .stats-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>任务14验证 - 游戏优化和完善体验</h1>
+    
+    <div class="test-section">
+        <h2>测试概述</h2>
+        <p>本测试验证以下优化功能：</p>
+        <ul>
+            <li>音效系统（跳跃、收集、击败敌人音效）</li>
+            <li>游戏性能和帧率优化</li>
+            <li>动画效果和视觉反馈增强</li>
+            <li>游戏平衡性和难度调整</li>
+        </ul>
+    </div>
+
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="controls">
+            <button onclick="startGame()">开始游戏</button>
+            <button onclick="toggleAudio()">切换音效</button>
+            <button onclick="showPerformanceStats()">性能统计</button>
+            <button onclick="testParticleEffects()">测试粒子效果</button>
+            <button onclick="toggleDebugMode()">调试模式</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>性能统计</h3>
+        <div class="stats-display" id="statsDisplay">
+            <div class="stat-card">
+                <div class="stat-value" id="fpsValue">--</div>
+                <div class="stat-label">FPS</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="objectCount">--</div>
+                <div class="stat-label">游戏对象数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="updateTime">--</div>
+                <div class="stat-label">更新时间 (ms)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="renderTime">--</div>
+                <div class="stat-label">渲染时间 (ms)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="particleCount">--</div>
+                <div class="stat-label">粒子数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="audioStatus">--</div>
+                <div class="stat-label">音频状态</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>功能测试结果</h3>
+        <div id="testResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>操作说明</h3>
+        <ul>
+            <li><strong>移动：</strong> ← → 方向键</li>
+            <li><strong>跳跃：</strong> 空格键或 ↑ 方向键</li>
+            <li><strong>暂停：</strong> ESC 键</li>
+            <li><strong>调试：</strong> 在URL后添加 ?debug=true</li>
+        </ul>
+        
+        <h4>测试要点：</h4>
+        <ul>
+            <li>跳跃时应该听到音效并看到尘土粒子效果</li>
+            <li>收集金币时应该听到音效并看到收集特效</li>
+            <li>击败敌人时应该听到音效并看到爆炸效果</li>
+            <li>游戏应该保持稳定的60FPS</li>
+            <li>玩家移动和跳跃手感应该更加流畅</li>
+            <li>敌人行为应该更加平衡和有挑战性</li>
+        </ul>
+    </div>
+
+    <!-- 游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+
+    <script>
+        // 游戏变量
+        let gameCanvas;
+        let gameEngine;
+        let gameStateManager;
+        let inputManager;
+        let audioManager;
+        let eventManager;
+        let particleSystem;
+        let player;
+        let currentLevel;
+        let scoreManager;
+        let hudManager;
+        
+        let isGameRunning = false;
+        let debugMode = false;
+        let statsInterval;
+
+        // 初始化测试
+        function initTest() {
+            console.log('初始化任务14测试...');
+            
+            gameCanvas = document.getElementById('gameCanvas');
+            
+            // 初始化所有系统
+            eventManager = new EventManager();
+            window.gameEvents = eventManager;
+            
+            audioManager = new AudioManager();
+            window.audioManager = audioManager;
+            
+            inputManager = new InputManager();
+            window.inputManager = inputManager;
+            
+            scoreManager = new ScoreManager();
+            window.scoreManager = scoreManager;
+            
+            gameEngine = new GameEngine(gameCanvas);
+            gameEngine.init();
+            
+            gameStateManager = new GameStateManager(gameEngine, gameCanvas);
+            gameStateManager.init();
+            window.gameStateManager = gameStateManager;
+            
+            setupEventListeners();
+            runTests();
+            
+            console.log('任务14测试初始化完成');
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 音效事件
+            eventManager.on('playerJump', (data) => {
+                audioManager.playSound('jump');
+                if (particleSystem && data.player) {
+                    const playerPos = data.player.position;
+                    particleSystem.createJumpDust(
+                        playerPos.x + data.player.size.x / 2, 
+                        playerPos.y + data.player.size.y
+                    );
+                }
+            });
+            
+            eventManager.on('coinCollected', (data) => {
+                audioManager.playSound('coin');
+                if (particleSystem && data.coin) {
+                    const coinPos = data.coin.position;
+                    particleSystem.createCollectEffect(
+                        coinPos.x + data.coin.size.x / 2, 
+                        coinPos.y + data.coin.size.y / 2
+                    );
+                }
+            });
+            
+            eventManager.on('enemyDefeated', (data) => {
+                audioManager.playSound('enemyDefeat');
+                if (particleSystem && data.enemy) {
+                    const enemyPos = data.enemy.position;
+                    particleSystem.createExplosion(
+                        enemyPos.x + data.enemy.size.x / 2, 
+                        enemyPos.y + data.enemy.size.y / 2
+                    );
+                }
+            });
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (isGameRunning) {
+                return;
+            }
+            
+            console.log('开始游戏测试...');
+            isGameRunning = true;
+            
+            // 启动音频上下文
+            audioManager.resume();
+            
+            // 创建游戏对象
+            createGameObjects();
+            
+            // 启动游戏引擎
+            gameEngine.start();
+            
+            // 开始性能监控
+            startPerformanceMonitoring();
+            
+            // 播放背景音乐
+            audioManager.playBackgroundMusic('main');
+            
+            addTestResult('游戏启动', '成功', 'pass');
+        }
+
+        // 创建游戏对象
+        function createGameObjects() {
+            // 重置分数管理器
+            scoreManager.reset();
+            
+            // 创建粒子系统
+            particleSystem = new ParticleSystem();
+            window.particleSystem = particleSystem;
+            gameEngine.addGameObject(particleSystem);
+            
+            // 创建关卡
+            currentLevel = new Level();
+            currentLevel.loadLevel();
+            window.currentLevel = currentLevel;
+            
+            const levelObjects = currentLevel.getAllObjects();
+            levelObjects.forEach(obj => {
+                gameEngine.addGameObject(obj);
+            });
+            
+            // 创建玩家
+            const spawnPoint = currentLevel.getSpawnPoint();
+            player = new Player(spawnPoint.x, spawnPoint.y);
+            player.scoreManager = scoreManager;
+            gameEngine.addGameObject(player);
+            
+            // 设置相机跟随
+            currentLevel.setCameraTarget(player);
+            
+            // 创建HUD
+            hudManager = new HUDManager(scoreManager);
+            gameEngine.addGameObject(hudManager);
+            
+            console.log('游戏对象创建完成');
+        }
+
+        // 切换音效
+        function toggleAudio() {
+            const audioStatus = audioManager.getStatus();
+            if (audioStatus.masterVolume > 0) {
+                audioManager.setMuted(true);
+                addTestResult('音效切换', '已静音', 'info');
+            } else {
+                audioManager.setMuted(false);
+                addTestResult('音效切换', '已启用', 'info');
+            }
+        }
+
+        // 显示性能统计
+        function showPerformanceStats() {
+            if (!gameEngine) {
+                addTestResult('性能统计', '游戏引擎未初始化', 'fail');
+                return;
+            }
+            
+            const stats = gameEngine.getPerformanceStats();
+            const audioStatus = audioManager.getStatus();
+            
+            document.getElementById('fpsValue').textContent = stats.fps || '--';
+            document.getElementById('objectCount').textContent = stats.objectCount || '--';
+            document.getElementById('updateTime').textContent = stats.updateTime ? stats.updateTime.toFixed(2) : '--';
+            document.getElementById('renderTime').textContent = stats.renderTime ? stats.renderTime.toFixed(2) : '--';
+            document.getElementById('particleCount').textContent = particleSystem ? particleSystem.getParticleCount() : '--';
+            document.getElementById('audioStatus').textContent = audioStatus.isInitialized ? '正常' : '未初始化';
+            
+            addTestResult('性能统计', '已更新', 'info');
+        }
+
+        // 测试粒子效果
+        function testParticleEffects() {
+            if (!particleSystem) {
+                addTestResult('粒子效果测试', '粒子系统未初始化', 'fail');
+                return;
+            }
+            
+            const centerX = gameCanvas.width / 2;
+            const centerY = gameCanvas.height / 2;
+            
+            // 测试各种粒子效果
+            particleSystem.createExplosion(centerX - 100, centerY, { color: '#FF6B6B' });
+            particleSystem.createCollectEffect(centerX, centerY, { color: '#FFD700' });
+            particleSystem.createJumpDust(centerX + 100, centerY, { color: '#D2B48C' });
+            
+            // 播放对应音效
+            audioManager.playSound('enemyDefeat');
+            audioManager.playSound('coin');
+            audioManager.playSound('jump');
+            
+            addTestResult('粒子效果测试', '已触发各种粒子效果', 'pass');
+        }
+
+        // 切换调试模式
+        function toggleDebugMode() {
+            debugMode = !debugMode;
+            
+            // 更新URL参数
+            const url = new URL(window.location);
+            if (debugMode) {
+                url.searchParams.set('debug', 'true');
+            } else {
+                url.searchParams.delete('debug');
+            }
+            window.history.replaceState({}, '', url);
+            
+            addTestResult('调试模式', debugMode ? '已启用' : '已禁用', 'info');
+        }
+
+        // 开始性能监控
+        function startPerformanceMonitoring() {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+            }
+            
+            statsInterval = setInterval(() => {
+                if (gameEngine && isGameRunning) {
+                    showPerformanceStats();
+                }
+            }, 1000); // 每秒更新一次
+        }
+
+        // 运行测试
+        function runTests() {
+            console.log('运行功能测试...');
+            
+            // 测试音频管理器
+            testAudioManager();
+            
+            // 测试事件管理器
+            testEventManager();
+            
+            // 测试粒子系统
+            testParticleSystemCreation();
+            
+            // 测试性能监控
+            testPerformanceMonitoring();
+            
+            console.log('功能测试完成');
+        }
+
+        // 测试音频管理器
+        function testAudioManager() {
+            try {
+                const status = audioManager.getStatus();
+                
+                if (status.isInitialized) {
+                    addTestResult('音频管理器初始化', '成功', 'pass');
+                } else {
+                    addTestResult('音频管理器初始化', '失败或需要用户交互', 'info');
+                }
+                
+                // 测试音效配置
+                const soundEffects = Object.keys(audioManager.soundEffects);
+                if (soundEffects.length > 0) {
+                    addTestResult('音效配置', `包含 ${soundEffects.length} 种音效`, 'pass');
+                } else {
+                    addTestResult('音效配置', '未找到音效配置', 'fail');
+                }
+                
+            } catch (error) {
+                addTestResult('音频管理器测试', `错误: ${error.message}`, 'fail');
+            }
+        }
+
+        // 测试事件管理器
+        function testEventManager() {
+            try {
+                // 测试事件监听和触发
+                let testEventTriggered = false;
+                
+                eventManager.on('testEvent', () => {
+                    testEventTriggered = true;
+                });
+                
+                eventManager.trigger('testEvent');
+                
+                if (testEventTriggered) {
+                    addTestResult('事件管理器', '事件监听和触发正常', 'pass');
+                } else {
+                    addTestResult('事件管理器', '事件系统异常', 'fail');
+                }
+                
+                // 测试事件统计
+                const stats = eventManager.getStats();
+                addTestResult('事件统计', `监听器总数: ${stats.totalListeners}`, 'info');
+                
+            } catch (error) {
+                addTestResult('事件管理器测试', `错误: ${error.message}`, 'fail');
+            }
+        }
+
+        // 测试粒子系统创建
+        function testParticleSystemCreation() {
+            try {
+                const testParticleSystem = new ParticleSystem();
+                
+                if (testParticleSystem) {
+                    addTestResult('粒子系统创建', '成功', 'pass');
+                    
+                    // 测试粒子创建方法
+                    const methods = ['createExplosion', 'createCollectEffect', 'createJumpDust', 'createDeathEffect'];
+                    const availableMethods = methods.filter(method => typeof testParticleSystem[method] === 'function');
+                    
+                    addTestResult('粒子效果方法', `可用方法: ${availableMethods.length}/${methods.length}`, 
+                        availableMethods.length === methods.length ? 'pass' : 'fail');
+                } else {
+                    addTestResult('粒子系统创建', '失败', 'fail');
+                }
+                
+            } catch (error) {
+                addTestResult('粒子系统测试', `错误: ${error.message}`, 'fail');
+            }
+        }
+
+        // 测试性能监控
+        function testPerformanceMonitoring() {
+            try {
+                if (gameEngine && typeof gameEngine.getPerformanceStats === 'function') {
+                    addTestResult('性能监控', '性能统计功能可用', 'pass');
+                } else {
+                    addTestResult('性能监控', '性能统计功能不可用', 'fail');
+                }
+                
+            } catch (error) {
+                addTestResult('性能监控测试', `错误: ${error.message}`, 'fail');
+            }
+        }
+
+        // 添加测试结果
+        function addTestResult(testName, result, status) {
+            const resultsContainer = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${status}`;
+            resultDiv.innerHTML = `<strong>${testName}:</strong> ${result}`;
+            resultsContainer.appendChild(resultDiv);
+            
+            console.log(`[${status.toUpperCase()}] ${testName}: ${result}`);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initTest);
+        
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+            }
+            if (gameEngine) {
+                gameEngine.stop();
+            }
+            if (audioManager) {
+                audioManager.destroy();
+            }
+        });
+    </script>
+</body>
+</html>

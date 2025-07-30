@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收集品系统测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .info {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background-color: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🪙 收集品系统测试</h1>
+        
+        <div class="info">
+            <h3>测试说明</h3>
+            <p>使用 ← → 移动，空格键跳跃，收集金币获得分数</p>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="scoreValue">0</div>
+                <div>分数</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="coinsValue">0</div>
+                <div>金币</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+
+    <script>
+        let canvas, engine, inputManager, player, level;
+        let coinsCollected = 0;
+        
+        function init() {
+            canvas = document.getElementById('gameCanvas');
+            
+            // 初始化输入管理器
+            inputManager = new InputManager();
+            window.inputManager = inputManager;
+            
+            // 初始化游戏引擎
+            engine = new GameEngine(canvas);
+            engine.init();
+            
+            // 创建简单测试关卡
+            const levelData = {
+                width: 1200,
+                height: 600,
+                spawn: { x: 50, y: 450 },
+                platforms: [
+                    { x: 0, y: 550, width: 1200, height: 50, type: 'ground' },
+                    { x: 200, y: 450, width: 100, height: 20, type: 'brick' },
+                    { x: 400, y: 350, width: 100, height: 20, type: 'stone' },
+                    { x: 600, y: 250, width: 100, height: 20, type: 'wood' }
+                ],
+                enemies: [],
+                collectibles: [
+                    { x: 150, y: 520, type: 'coin', value: 100 },
+                    { x: 250, y: 420, type: 'coin', value: 100 },
+                    { x: 350, y: 520, type: 'coin', value: 100 },
+                    { x: 450, y: 320, type: 'coin', value: 100 },
+                    { x: 550, y: 520, type: 'coin', value: 100 },
+                    { x: 650, y: 220, type: 'coin', value: 100 },
+                    { x: 750, y: 520, type: 'coin', value: 100 },
+                    { x: 850, y: 520, type: 'coin', value: 100 }
+                ]
+            };
+            
+            level = new Level(levelData);
+            level.loadLevel();
+            window.currentLevel = level;
+            
+            // 添加关卡对象到引擎
+            level.getAllObjects().forEach(obj => engine.addGameObject(obj));
+            
+            // 创建玩家
+            player = new Player(50, 450);
+            engine.addGameObject(player);
+            level.setCameraTarget(player);
+            
+            // 监听分数变化
+            const originalAddScore = player.addScore;
+            player.addScore = function(points) {
+                originalAddScore.call(this, points);
+                if (points === 100) {
+                    coinsCollected++;
+                }
+            };
+            
+            // 启动引擎
+            engine.start();
+            
+            // 更新UI
+            setInterval(updateUI, 100);
+            
+            console.log('收集品测试初始化完成');
+        }
+        
+        function updateUI() {
+            document.getElementById('scoreValue').textContent = player ? player.getScore() : 0;
+            document.getElementById('coinsValue').textContent = coinsCollected;
+        }
+        
+        // 防止方向键滚动页面
+        window.addEventListener('keydown', function(e) {
+            if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.code) > -1) {
+                e.preventDefault();
+            }
+        }, false);
+        
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

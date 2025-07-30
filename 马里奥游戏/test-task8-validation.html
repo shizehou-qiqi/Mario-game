@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务8验证测试 - 玩家敌人互动</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .test-info {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 15px 0;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .health { color: #ff0000; }
+        .score { color: #0000ff; }
+        .invulnerable { color: #ff8800; }
+        .enemies { color: #8B4513; }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 3px;
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .test-results {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .test-case {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #ddd;
+        }
+        
+        .test-case.pass {
+            border-left-color: #4CAF50;
+            background-color: #f0fff0;
+        }
+        
+        .test-case.fail {
+            border-left-color: #f44336;
+            background-color: #fff0f0;
+        }
+        
+        .log {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #f5f5f5;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            border-radius: 3px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>任务8验证测试 - 玩家与敌人的互动</h1>
+    
+    <div class="test-info">
+        <h3>测试目标</h3>
+        <p>验证以下功能是否正确实现：</p>
+        <ul style="text-align: left; display: inline-block;">
+            <li>玩家从上方跳到敌人身上时击败敌人</li>
+            <li>玩家从侧面接触敌人时受伤</li>
+            <li>敌人被击败时给予分数奖励</li>
+            <li>玩家受伤时进入无敌状态</li>
+            <li>碰撞方向检测准确性</li>
+        </ul>
+        <p><strong>控制说明：</strong>方向键移动，空格键跳跃</p>
+    </div>
+    
+    <div class="status">
+        <div class="health">生命值: <span id="health">3/3</span></div>
+        <div class="score">分数: <span id="score">0</span></div>
+        <div class="invulnerable">无敌: <span id="invulnerable">否</span></div>
+        <div class="enemies">敌人数量: <span id="enemyCount">0</span></div>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="startTest()">开始测试</button>
+        <button onclick="resetTest()">重置测试</button>
+        <button onclick="runAutomatedTests()">运行自动化测试</button>
+        <button onclick="clearLog()">清除日志</button>
+    </div>
+    
+    <div class="test-results">
+        <h3>测试结果</h3>
+        <div id="testResults"></div>
+        <div class="log" id="testLog"></div>
+    </div>
+
+    <!-- 引入必要的脚本文件 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="verify-task8-implementation.js"></script>
+
+    <script>
+        let gameEngine;
+        let player;
+        let platforms = [];
+        let enemies = [];
+        let isTestRunning = false;
+        let testResults = [];
+        let eventLog = [];
+
+        // UI元素
+        const healthDisplay = document.getElementById('health');
+        const scoreDisplay = document.getElementById('score');
+        const invulnerableDisplay = document.getElementById('invulnerable');
+        const enemyCountDisplay = document.getElementById('enemyCount');
+        const testResultsDiv = document.getElementById('testResults');
+        const testLogDiv = document.getElementById('testLog');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            eventLog.push(logEntry);
+            console.log(logEntry);
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            testLogDiv.innerHTML = eventLog.slice(-20).join('<br>');
+            testLogDiv.scrollTop = testLogDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            eventLog = [];
+            updateLogDisplay();
+        }
+
+        function initTest() {
+            log('初始化任务8验证测试...');
+            
+            const canvas = document.getElementById('gameCanvas');
+            gameEngine = new GameEngine(canvas);
+            gameEngine.init();
+            
+            // 创建输入管理器
+            window.inputManager = new InputManager();
+            window.inputManager.init();
+            
+            // 创建平台
+            createPlatforms();
+            
+            // 创建玩家
+            createPlayer();
+            
+            // 创建敌人
+            createEnemies();
+            
+            // 设置事件监听器
+            setupEventListeners();
+            
+            log('测试初始化完成');
+        }
+        
+        function createPlatforms() {
+            // 地面平台
+            const groundPlatform = new Platform(0, 550, 800, 50);
+            platforms.push(groundPlatform);
+            gameEngine.addGameObject(groundPlatform);
+            
+            // 测试平台 - 用于跳跃测试
+            const testPlatform1 = new Platform(300, 400, 200, 20);
+            platforms.push(testPlatform1);
+            gameEngine.addGameObject(testPlatform1);
+            
+            const testPlatform2 = new Platform(100, 300, 150, 20);
+            platforms.push(testPlatform2);
+            gameEngine.addGameObject(testPlatform2);
+            
+            log('平台创建完成');
+        }
+        
+        function createPlayer() {
+            player = new Player(50, 500);
+            gameEngine.addGameObject(player);
+            log('玩家创建完成');
+        }
+        
+        function createEnemies() {
+            // 创建测试敌人
+            const enemy1 = new Goomba(400, 520); // 地面敌人
+            enemies.push(enemy1);
+            gameEngine.addGameObject(enemy1);
+            
+            const enemy2 = new Goomba(350, 370); // 平台上的敌人
+            enemies.push(enemy2);
+            gameEngine.addGameObject(enemy2);
+            
+            const enemy3 = new Goomba(150, 270); // 高平台上的敌人
+            enemies.push(enemy3);
+            gameEngine.addGameObject(enemy3);
+            
+            log(`创建了 ${enemies.length} 个敌人`);
+        }
+        
+        function setupEventListeners() {
+            // 监听玩家受伤事件
+            window.gameEvents.on('playerHurt', (data) => {
+                log(`玩家受伤！生命值: ${data.currentHealth}/${data.maxHealth}`);
+                updateUI();
+                
+                // 记录测试结果
+                testResults.push({
+                    type: 'playerHurt',
+                    success: true,
+                    message: '玩家受伤机制正常工作',
+                    data: data
+                });
+            });
+            
+            // 监听玩家死亡事件
+            window.gameEvents.on('playerDeath', (data) => {
+                log(`玩家死亡！最终分数: ${data.score}`);
+                updateUI();
+                
+                testResults.push({
+                    type: 'playerDeath',
+                    success: true,
+                    message: '玩家死亡机制正常工作',
+                    data: data
+                });
+            });
+            
+            // 监听敌人被击败事件
+            window.gameEvents.on('enemyDefeated', (data) => {
+                log(`敌人被击败！类型: ${data.enemy.type}, 分数奖励: ${data.scoreReward}`);
+                updateUI();
+                
+                testResults.push({
+                    type: 'enemyDefeated',
+                    success: true,
+                    message: `敌人击败机制正常工作，获得 ${data.scoreReward} 分`,
+                    data: data
+                });
+            });
+            
+            // 监听分数变化事件
+            window.gameEvents.on('scoreChanged', (data) => {
+                log(`分数变化: +${data.pointsAdded}, 总分: ${data.totalScore}`);
+                updateUI();
+            });
+        }
+        
+        function updateUI() {
+            if (player) {
+                healthDisplay.textContent = `${player.getHealth()}/${player.getMaxHealth()}`;
+                scoreDisplay.textContent = player.getScore();
+                invulnerableDisplay.textContent = player.isInvulnerableState() ? '是' : '否';
+            }
+            
+            // 统计活着的敌人数量
+            const aliveEnemies = enemies.filter(enemy => enemy.isAlive && !enemy.isDefeated);
+            enemyCountDisplay.textContent = aliveEnemies.length;
+            
+            updateTestResults();
+        }
+        
+        function updateTestResults() {
+            let html = '';
+            
+            // 按类型分组显示测试结果
+            const groupedResults = {};
+            testResults.forEach(result => {
+                if (!groupedResults[result.type]) {
+                    groupedResults[result.type] = [];
+                }
+                groupedResults[result.type].push(result);
+            });
+            
+            for (const [type, results] of Object.entries(groupedResults)) {
+                html += `<div class="test-case ${results[0].success ? 'pass' : 'fail'}">`;
+                html += `<strong>${type}:</strong> ${results[0].message} (${results.length}次)`;
+                html += `</div>`;
+            }
+            
+            if (html === '') {
+                html = '<p>暂无测试结果，请开始测试...</p>';
+            }
+            
+            testResultsDiv.innerHTML = html;
+        }
+        
+        function startTest() {
+            if (isTestRunning) {
+                log('测试已在运行中');
+                return;
+            }
+            
+            log('开始测试...');
+            isTestRunning = true;
+            gameEngine.start();
+            
+            // 定期更新UI
+            setInterval(updateUI, 100);
+        }
+        
+        function resetTest() {
+            log('重置测试...');
+            
+            if (isTestRunning) {
+                gameEngine.stop();
+            }
+            
+            // 清理现有对象
+            gameEngine.gameObjects.length = 0;
+            platforms.length = 0;
+            enemies.length = 0;
+            testResults.length = 0;
+            
+            // 重新创建所有对象
+            createPlatforms();
+            createPlayer();
+            createEnemies();
+            
+            updateUI();
+            
+            if (isTestRunning) {
+                gameEngine.start();
+            }
+        }
+        
+        function runAutomatedTests() {
+            log('开始运行自动化测试...');
+            
+            if (!isTestRunning) {
+                startTest();
+            }
+            
+            // 测试1: 验证方法存在性
+            setTimeout(() => {
+                testMethodsExist();
+            }, 500);
+            
+            // 测试2: 验证碰撞方向检测
+            setTimeout(() => {
+                testCollisionDirection();
+            }, 1500);
+            
+            // 测试3: 验证击败敌人逻辑
+            setTimeout(() => {
+                testEnemyDefeat();
+            }, 3000);
+            
+            // 测试4: 验证受伤逻辑
+            setTimeout(() => {
+                testPlayerHurt();
+            }, 4500);
+            
+            // 测试5: 验证分数系统
+            setTimeout(() => {
+                testScoreSystem();
+            }, 6000);
+        }
+        
+        function testCollisionDirection() {
+            log('测试碰撞方向检测...');
+            
+            // 创建测试敌人
+            const testEnemy = new Goomba(200, 520);
+            enemies.push(testEnemy);
+            gameEngine.addGameObject(testEnemy);
+            
+            // 将玩家移动到敌人上方
+            player.setPosition(200, 450);
+            player.setVelocity(0, 200); // 向下速度
+            
+            log('设置玩家从上方接近敌人');
+        }
+        
+        function testEnemyDefeat() {
+            log('测试敌人击败逻辑...');
+            
+            // 验证击败敌人的方法是否存在
+            if (typeof player.defeatEnemy === 'function') {
+                log('✓ Player.defeatEnemy 方法存在');
+            } else {
+                log('✗ Player.defeatEnemy 方法不存在');
+            }
+            
+            // 验证分数奖励方法是否存在
+            if (typeof player.getEnemyScoreReward === 'function') {
+                log('✓ Player.getEnemyScoreReward 方法存在');
+            } else {
+                log('✗ Player.getEnemyScoreReward 方法不存在');
+            }
+        }
+        
+        function testMethodsExist() {
+            log('测试方法存在性...');
+            
+            const methods = [
+                'handleEnemyCollision',
+                'defeatEnemy', 
+                'takeDamageFromEnemy',
+                'isInvulnerableState',
+                'getEnemyScoreReward',
+                'addScore'
+            ];
+            
+            methods.forEach(method => {
+                if (typeof player[method] === 'function') {
+                    log(`✓ Player.${method} 方法存在`);
+                } else {
+                    log(`✗ Player.${method} 方法不存在`);
+                }
+            });
+            
+            // 测试Physics类的新方法
+            if (typeof Physics.getCollisionDirectionWithVelocity === 'function') {
+                log('✓ Physics.getCollisionDirectionWithVelocity 方法存在');
+            } else {
+                log('✗ Physics.getCollisionDirectionWithVelocity 方法不存在');
+            }
+        }
+        
+        function testPlayerHurt() {
+            log('测试玩家受伤逻辑...');
+            
+            // 创建测试敌人在玩家侧面
+            const testEnemy = new Goomba(player.position.x + 40, player.position.y);
+            enemies.push(testEnemy);
+            gameEngine.addGameObject(testEnemy);
+            
+            // 记录初始生命值
+            const initialHealth = player.getHealth();
+            log(`玩家初始生命值: ${initialHealth}`);
+            
+            // 模拟侧面碰撞
+            player.setVelocity(50, 0); // 向右移动
+            
+            log('设置玩家向敌人移动（侧面碰撞测试）');
+        }
+        
+        function testScoreSystem() {
+            log('测试分数系统...');
+            
+            const initialScore = player.getScore();
+            log(`玩家初始分数: ${initialScore}`);
+            
+            // 测试分数奖励计算
+            const goombaReward = player.getEnemyScoreReward('goomba');
+            log(`Goomba击败奖励: ${goombaReward} 分`);
+            
+            const koopaReward = player.getEnemyScoreReward('koopa');
+            log(`Koopa击败奖励: ${koopaReward} 分`);
+            
+            const basicReward = player.getEnemyScoreReward('basic');
+            log(`基础敌人击败奖励: ${basicReward} 分`);
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            initTest();
+            log('页面加载完成，验证测试准备就绪');
+        });
+        
+        // 键盘快捷键
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'KeyR') {
+                resetTest();
+            } else if (event.code === 'KeyT') {
+                runAutomatedTests();
+            }
+        });
+        
+        log('任务8验证测试脚本加载完成');
+    </script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameEngine Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: white;
+        }
+        .controls {
+            margin-top: 10px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        .info {
+            margin-top: 10px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>GameEngine 测试</h1>
+    <canvas id="testCanvas" width="800" height="400"></canvas>
+    
+    <div class="controls">
+        <button onclick="startEngine()">启动引擎</button>
+        <button onclick="stopEngine()">停止引擎</button>
+        <button onclick="pauseEngine()">暂停引擎</button>
+        <button onclick="resumeEngine()">恢复引擎</button>
+        <button onclick="addTestObject()">添加测试对象</button>
+        <button onclick="toggleDebug()">切换调试模式</button>
+    </div>
+    
+    <div class="info" id="engineInfo">
+        引擎状态: 未初始化
+    </div>
+    
+    <script src="js/gameEngine.js"></script>
+    <script>
+        let testEngine;
+        let testObjects = [];
+        let objectCounter = 0;
+        
+        // 初始化测试
+        function initTest() {
+            const canvas = document.getElementById('testCanvas');
+            testEngine = new GameEngine(canvas);
+            testEngine.init();
+            
+            // 添加基础背景对象
+            const backgroundObject = {
+                update: function(deltaTime) {},
+                render: function(context, interpolation) {
+                    // 绘制渐变背景
+                    const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+                    gradient.addColorStop(0, '#87CEEB');
+                    gradient.addColorStop(1, '#98FB98');
+                    context.fillStyle = gradient;
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                }
+            };
+            
+            testEngine.addGameObject(backgroundObject);
+            updateInfo();
+        }
+        
+        function startEngine() {
+            testEngine.start();
+            updateInfo();
+        }
+        
+        function stopEngine() {
+            testEngine.stop();
+            updateInfo();
+        }
+        
+        function pauseEngine() {
+            testEngine.pause();
+            updateInfo();
+        }
+        
+        function resumeEngine() {
+            testEngine.resume();
+            updateInfo();
+        }
+        
+        function addTestObject() {
+            const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+            const color = colors[objectCounter % colors.length];
+            
+            const testObject = {
+                x: Math.random() * 700 + 50,
+                y: Math.random() * 300 + 50,
+                vx: (Math.random() - 0.5) * 200,
+                vy: (Math.random() - 0.5) * 200,
+                radius: Math.random() * 20 + 10,
+                color: color,
+                id: objectCounter++,
+                
+                update: function(deltaTime) {
+                    this.x += this.vx * deltaTime;
+                    this.y += this.vy * deltaTime;
+                    
+                    // 边界反弹
+                    if (this.x < this.radius || this.x > 800 - this.radius) {
+                        this.vx = -this.vx;
+                        this.x = Math.max(this.radius, Math.min(800 - this.radius, this.x));
+                    }
+                    if (this.y < this.radius || this.y > 400 - this.radius) {
+                        this.vy = -this.vy;
+                        this.y = Math.max(this.radius, Math.min(400 - this.radius, this.y));
+                    }
+                },
+                
+                render: function(context, interpolation) {
+                    context.fillStyle = this.color;
+                    context.beginPath();
+                    context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    context.fill();
+                    
+                    // 绘制ID
+                    context.fillStyle = '#FFFFFF';
+                    context.font = '12px Arial';
+                    context.textAlign = 'center';
+                    context.fillText(this.id.toString(), this.x, this.y + 4);
+                }
+            };
+            
+            testEngine.addGameObject(testObject);
+            testObjects.push(testObject);
+            updateInfo();
+        }
+        
+        function toggleDebug() {
+            const url = new URL(window.location);
+            if (url.searchParams.has('debug')) {
+                url.searchParams.delete('debug');
+            } else {
+                url.searchParams.set('debug', 'true');
+            }
+            window.location.href = url.toString();
+        }
+        
+        function updateInfo() {
+            const info = document.getElementById('engineInfo');
+            info.innerHTML = `
+                引擎状态: ${testEngine.isRunning ? '运行中' : '已停止'}<br>
+                FPS: ${testEngine.getFPS()}<br>
+                Delta Time: ${testEngine.getDeltaTime().toFixed(2)}ms<br>
+                游戏对象数量: ${testEngine.gameObjects.length}<br>
+                测试对象数量: ${testObjects.length}
+            `;
+        }
+        
+        // 定期更新信息显示
+        setInterval(updateInfo, 1000);
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initTest);
+    </script>
+</body>
+</html>

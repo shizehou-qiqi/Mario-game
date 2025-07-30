@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试按钮问题</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .debug-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #E55A2B;
+        }
+        .log {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>马里奥游戏按钮调试</h1>
+        <p>这个页面用来测试按钮点击事件是否正常工作</p>
+        
+        <button id="testButton">测试按钮</button>
+        <button id="startButton">开始游戏</button>
+        
+        <div class="log" id="logOutput">等待事件...</div>
+    </div>
+
+    <!-- 加载游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+
+    <script>
+        const logOutput = document.getElementById('logOutput');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logOutput.textContent += `[${timestamp}] ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+            console.log(message);
+        }
+
+        // 测试基本按钮功能
+        document.getElementById('testButton').addEventListener('click', function() {
+            log('测试按钮被点击了！');
+        });
+
+        // 测试开始按钮
+        document.getElementById('startButton').addEventListener('click', function() {
+            log('开始按钮被点击了！');
+
+            // 尝试加载游戏脚本
+            try {
+                log('检查游戏类是否已加载...');
+
+                // 检查是否有必要的类
+                if (typeof GameStateManager !== 'undefined') {
+                    log('✓ GameStateManager 已加载');
+                } else {
+                    log('✗ GameStateManager 未找到');
+                }
+
+                if (typeof GameEngine !== 'undefined') {
+                    log('✓ GameEngine 已加载');
+                } else {
+                    log('✗ GameEngine 未找到');
+                }
+
+                if (typeof EventManager !== 'undefined') {
+                    log('✓ EventManager 已加载');
+                } else {
+                    log('✗ EventManager 未找到');
+                }
+
+                if (typeof InputManager !== 'undefined') {
+                    log('✓ InputManager 已加载');
+                } else {
+                    log('✗ InputManager 未找到');
+                }
+
+                // 尝试初始化游戏
+                log('尝试初始化游戏...');
+
+                // 创建Canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                canvas.id = 'gameCanvas';
+                document.body.appendChild(canvas);
+
+                // 初始化游戏引擎
+                const gameEngine = new GameEngine(canvas);
+                gameEngine.init();
+                log('✓ GameEngine 初始化成功');
+
+                // 初始化状态管理器
+                const gameStateManager = new GameStateManager(gameEngine, canvas);
+                gameStateManager.init();
+                log('✓ GameStateManager 初始化成功');
+
+                // 测试开始游戏
+                gameStateManager.startGame();
+                log('✓ 游戏启动成功');
+
+            } catch (error) {
+                log('错误: ' + error.message);
+                log('错误堆栈: ' + error.stack);
+            }
+        });
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            log('页面加载完成');
+
+            // 检查所有脚本是否加载
+            setTimeout(() => {
+                log('延迟检查脚本加载状态...');
+
+                const classes = [
+                    'Vector2D', 'Physics', 'SpriteManager', 'GameObject',
+                    'EventManager', 'AudioManager', 'ParticleSystem',
+                    'InputManager', 'Platform', 'Enemy', 'Collectible',
+                    'Level', 'ScoreManager', 'HUDManager', 'Player',
+                    'GameEngine', 'GameStateManager'
+                ];
+
+                classes.forEach(className => {
+                    if (typeof window[className] !== 'undefined') {
+                        log(`✓ ${className} 已加载`);
+                    } else {
+                        log(`✗ ${className} 未找到`);
+                    }
+                });
+            }, 1000);
+        });
+
+        // 监听所有错误
+        window.addEventListener('error', function(event) {
+            log('JavaScript错误: ' + event.error.message);
+            log('文件: ' + event.filename + ':' + event.lineno);
+            log('错误堆栈: ' + event.error.stack);
+        });
+
+        log('调试脚本已加载');
+    </script>
+</body>
+</html>

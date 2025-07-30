@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玩家敌人互动测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .info {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .status {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .health {
+            color: #ff0000;
+        }
+        
+        .score {
+            color: #0000ff;
+        }
+        
+        .invulnerable {
+            color: #ff8800;
+        }
+    </style>
+</head>
+<body>
+    <h1>玩家敌人互动测试</h1>
+    
+    <div class="info">
+        <p>控制说明：方向键移动，空格键跳跃</p>
+        <p>测试内容：从上方跳到敌人身上击败敌人，从侧面接触敌人会受伤</p>
+        <p>添加 ?debug=true 到URL查看调试信息</p>
+    </div>
+    
+    <div class="status">
+        <div class="health">生命值: <span id="health">3/3</span></div>
+        <div class="score">分数: <span id="score">0</span></div>
+        <div class="invulnerable">无敌状态: <span id="invulnerable">否</span></div>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="startTest()">开始测试</button>
+        <button onclick="stopTest()">停止测试</button>
+        <button onclick="resetTest()">重置测试</button>
+        <button onclick="addEnemy()">添加敌人</button>
+    </div>
+    
+    <div class="info">
+        <p>调试信息：按F12打开控制台查看详细日志</p>
+    </div>
+
+    <!-- 引入必要的脚本文件 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/gameEngine.js"></script>
+
+    <script>
+        let gameEngine;
+        let player;
+        let platforms = [];
+        let enemies = [];
+        let isTestRunning = false;
+
+        // UI元素
+        const healthDisplay = document.getElementById('health');
+        const scoreDisplay = document.getElementById('score');
+        const invulnerableDisplay = document.getElementById('invulnerable');
+
+        function initTest() {
+            console.log('初始化玩家敌人互动测试...');
+            
+            const canvas = document.getElementById('gameCanvas');
+            gameEngine = new GameEngine(canvas);
+            gameEngine.init();
+            
+            // 创建输入管理器
+            window.inputManager = new InputManager();
+            window.inputManager.init();
+            
+            // 创建平台
+            createPlatforms();
+            
+            // 创建玩家
+            createPlayer();
+            
+            // 创建敌人
+            createEnemies();
+            
+            // 设置事件监听器
+            setupEventListeners();
+            
+            console.log('测试初始化完成');
+        }
+        
+        function createPlatforms() {
+            // 地面平台
+            const groundPlatform = new Platform(0, 550, 800, 50);
+            platforms.push(groundPlatform);
+            gameEngine.addGameObject(groundPlatform);
+            
+            // 一些悬浮平台
+            const platform1 = new Platform(200, 450, 150, 20);
+            platforms.push(platform1);
+            gameEngine.addGameObject(platform1);
+            
+            const platform2 = new Platform(450, 350, 150, 20);
+            platforms.push(platform2);
+            gameEngine.addGameObject(platform2);
+            
+            const platform3 = new Platform(100, 300, 100, 20);
+            platforms.push(platform3);
+            gameEngine.addGameObject(platform3);
+        }
+        
+        function createPlayer() {
+            player = new Player(100, 500);
+            gameEngine.addGameObject(player);
+            
+            console.log('玩家创建完成');
+        }
+        
+        function createEnemies() {
+            // 创建几个Goomba敌人
+            const goomba1 = new Goomba(300, 520);
+            enemies.push(goomba1);
+            gameEngine.addGameObject(goomba1);
+            
+            const goomba2 = new Goomba(500, 320);
+            enemies.push(goomba2);
+            gameEngine.addGameObject(goomba2);
+            
+            const goomba3 = new Goomba(150, 270);
+            enemies.push(goomba3);
+            gameEngine.addGameObject(goomba3);
+            
+            console.log('敌人创建完成');
+        }
+        
+        function setupEventListeners() {
+            // 监听玩家受伤事件
+            window.gameEvents.on('playerHurt', (data) => {
+                console.log('玩家受伤事件:', data);
+                updateUI();
+            });
+            
+            // 监听玩家死亡事件
+            window.gameEvents.on('playerDeath', (data) => {
+                console.log('玩家死亡事件:', data);
+                updateUI();
+            });
+            
+            // 监听敌人被击败事件
+            window.gameEvents.on('enemyDefeated', (data) => {
+                console.log('敌人被击败事件:', data);
+                updateUI();
+            });
+            
+            // 监听分数变化事件
+            window.gameEvents.on('scoreChanged', (data) => {
+                console.log('分数变化事件:', data);
+                updateUI();
+            });
+        }
+        
+        function updateUI() {
+            if (player) {
+                healthDisplay.textContent = `${player.getHealth()}/${player.getMaxHealth()}`;
+                scoreDisplay.textContent = player.getScore();
+                invulnerableDisplay.textContent = player.isInvulnerableState() ? '是' : '否';
+            }
+        }
+        
+        function startTest() {
+            if (isTestRunning) {
+                console.log('测试已在运行中');
+                return;
+            }
+            
+            console.log('开始测试...');
+            isTestRunning = true;
+            gameEngine.start();
+            
+            // 定期更新UI
+            setInterval(updateUI, 100);
+        }
+        
+        function stopTest() {
+            if (!isTestRunning) {
+                console.log('测试未在运行');
+                return;
+            }
+            
+            console.log('停止测试...');
+            isTestRunning = false;
+            gameEngine.stop();
+        }
+        
+        function resetTest() {
+            console.log('重置测试...');
+            
+            if (isTestRunning) {
+                gameEngine.stop();
+            }
+            
+            // 清理现有对象
+            gameEngine.gameObjects.length = 0;
+            platforms.length = 0;
+            enemies.length = 0;
+            
+            // 重新创建所有对象
+            createPlatforms();
+            createPlayer();
+            createEnemies();
+            
+            updateUI();
+            
+            if (isTestRunning) {
+                gameEngine.start();
+            }
+        }
+        
+        function addEnemy() {
+            console.log('添加新敌人...');
+            
+            // 在随机位置创建新敌人
+            const x = Math.random() * 600 + 100;
+            const y = 520;
+            
+            const newGoomba = new Goomba(x, y);
+            enemies.push(newGoomba);
+            gameEngine.addGameObject(newGoomba);
+            
+            console.log(`新敌人创建在位置: (${x}, ${y})`);
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            initTest();
+            console.log('页面加载完成，测试准备就绪');
+        });
+        
+        // 键盘事件处理
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'KeyR') {
+                resetTest();
+            } else if (event.code === 'KeyE') {
+                addEnemy();
+            }
+        });
+        
+        console.log('玩家敌人互动测试脚本加载完成');
+    </script>
+</body>
+</html>

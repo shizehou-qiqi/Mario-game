@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #testCanvas {
+            border: 3px solid #333;
+            border-radius: 5px;
+            background: #87CEEB;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        .info {
+            text-align: center;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>Canvas背景测试</h1>
+        <p>如果Canvas显示蓝色背景和白色方块，说明Canvas工作正常</p>
+        <p>如果显示红色，说明有其他问题</p>
+    </div>
+    
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    
+    <div class="info">
+        <p>Canvas尺寸: 800x600</p>
+        <p>CSS背景色: #87CEEB (天空蓝)</p>
+    </div>
+
+    <script>
+        // 获取Canvas和上下文
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        console.log('Canvas尺寸:', canvas.width, 'x', canvas.height);
+        
+        // 测试1：填充蓝色背景
+        ctx.fillStyle = '#87CEEB';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 测试2：绘制白色方块
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(100, 100, 200, 100);
+        
+        // 测试3：绘制黑色文字
+        ctx.fillStyle = '#000000';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('Canvas测试成功', 110, 140);
+        ctx.fillText('背景应该是蓝色', 110, 170);
+        
+        // 测试4：绘制绿色方块作为对比
+        ctx.fillStyle = '#00FF00';
+        ctx.fillRect(400, 100, 100, 100);
+        
+        ctx.fillStyle = '#000000';
+        ctx.fillText('绿色方块', 420, 140);
+        
+        console.log('Canvas测试完成');
+    </script>
+</body>
+</html>

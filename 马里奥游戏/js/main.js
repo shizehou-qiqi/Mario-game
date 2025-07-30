@@ -267,23 +267,48 @@ function updateUIForState(state) {
  * 初始化游戏玩法（创建关卡、玩家等）
  */
 function initializeGameplay() {
-    // 重置分数管理器
-    scoreManager.reset();
-    
-    // 创建粒子系统
-    createParticleSystem();
-    
-    // 创建关卡
-    createLevel();
-    
-    // 创建玩家
-    createPlayer();
-    
-    // 创建HUD管理器
-    createHUD();
-    
-    // 添加游戏UI
-    addGameUI();
+    console.log('🎮 开始初始化游戏玩法...');
+
+    try {
+        // 重置分数管理器
+        console.log('📊 重置分数管理器...');
+        scoreManager.reset();
+
+        // 创建粒子系统
+        console.log('✨ 创建粒子系统...');
+        createParticleSystem();
+
+        // 创建关卡
+        console.log('🏗️ 创建关卡...');
+        createLevel();
+
+        // 创建玩家
+        console.log('👤 创建玩家...');
+        createPlayer();
+
+        // 创建HUD管理器
+        console.log('📱 创建HUD管理器...');
+        createHUD();
+
+        // 添加游戏UI
+        console.log('🖥️ 添加游戏UI...');
+        addGameUI();
+
+        console.log('✅ 游戏玩法初始化完成！');
+    } catch (error) {
+        console.error('❌ 游戏玩法初始化失败:', error);
+        console.error('📋 错误堆栈:', error.stack);
+
+        // 显示错误信息给用户
+        if (gameCanvas && gameCanvas.getContext) {
+            const ctx = gameCanvas.getContext('2d');
+            ctx.fillStyle = '#FF0000';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('游戏初始化失败', gameCanvas.width / 2, gameCanvas.height / 2);
+            ctx.fillText(error.message, gameCanvas.width / 2, gameCanvas.height / 2 + 30);
+        }
+    }
 }
 
 /**
@@ -350,48 +375,79 @@ function createParticleSystem() {
  * 创建关卡
  */
 function createLevel() {
-    currentLevel = new Level();
-    currentLevel.loadLevel(); // 加载默认关卡
-    
-    // 将关卡对象添加到游戏引擎
-    const levelObjects = currentLevel.getAllObjects();
-    levelObjects.forEach(obj => {
-        gameEngine.addGameObject(obj);
-    });
-    
-    console.log('Level created and loaded');
+    try {
+        console.log('🏗️ 创建关卡实例...');
+        currentLevel = new Level();
+
+        console.log('📦 加载关卡数据...');
+        currentLevel.loadLevel(); // 加载默认关卡
+
+        // 将关卡对象添加到游戏引擎
+        console.log('🎯 添加关卡对象到游戏引擎...');
+        const levelObjects = currentLevel.getAllObjects();
+        console.log(`📊 找到 ${levelObjects.length} 个关卡对象`);
+
+        levelObjects.forEach((obj, index) => {
+            try {
+                gameEngine.addGameObject(obj);
+                console.log(`✅ 添加对象 ${index + 1}/${levelObjects.length}: ${obj.tag || obj.constructor.name}`);
+            } catch (objError) {
+                console.error(`❌ 添加对象失败 ${index + 1}:`, objError);
+            }
+        });
+
+        console.log('✅ 关卡创建和加载完成');
+    } catch (error) {
+        console.error('❌ 创建关卡失败:', error);
+        console.error('📋 错误堆栈:', error.stack);
+        throw error; // 重新抛出错误，让上层处理
+    }
 }
 
 /**
  * 创建玩家角色
  */
 function createPlayer() {
-    const spawnPoint = currentLevel.getSpawnPoint();
-    player = new Player(spawnPoint.x, spawnPoint.y);
+    try {
+        console.log('👤 获取玩家生成点...');
+        const spawnPoint = currentLevel.getSpawnPoint();
+        console.log(`📍 生成点位置: (${spawnPoint.x}, ${spawnPoint.y})`);
 
-    // 🔧 重要：初始化玩家（设置输入处理等）
-    player.init();
+        console.log('🎮 创建玩家实例...');
+        player = new Player(spawnPoint.x, spawnPoint.y);
 
-    // 将分数管理器传递给玩家
-    if (scoreManager) {
-        player.scoreManager = scoreManager;
-        // 同步生命值
-        player.health = scoreManager.getLives();
-        player.maxHealth = scoreManager.getLives();
+        // 🔧 重要：初始化玩家（设置输入处理等）
+        console.log('⚙️ 初始化玩家...');
+        player.init();
+
+        // 将分数管理器传递给玩家
+        if (scoreManager) {
+            console.log('📊 连接分数管理器到玩家...');
+            player.scoreManager = scoreManager;
+            // 同步生命值
+            player.health = scoreManager.getLives();
+            player.maxHealth = scoreManager.getLives();
+        }
+
+        console.log('🎯 添加玩家到游戏引擎...');
+        gameEngine.addGameObject(player);
+
+        // 🔧 重要：将玩家添加到关卡的allObjects中，确保被渲染
+        if (currentLevel) {
+            currentLevel.allObjects.push(player);
+            console.log('✅ 玩家已添加到关卡渲染列表');
+        }
+
+        // 设置相机跟随玩家
+        console.log('📷 设置相机跟随玩家...');
+        currentLevel.setCameraTarget(player);
+
+        console.log('✅ 玩家创建和添加完成');
+    } catch (error) {
+        console.error('❌ 创建玩家失败:', error);
+        console.error('📋 错误堆栈:', error.stack);
+        throw error; // 重新抛出错误，让上层处理
     }
-
-    gameEngine.addGameObject(player);
-
-    // 🔧 重要：将玩家添加到关卡的allObjects中，确保被渲染
-    if (currentLevel) {
-        currentLevel.allObjects.push(player);
-        console.log('Player added to level.allObjects for rendering');
-    }
-
-    // 设置相机跟随玩家
-    currentLevel.setCameraTarget(player);
-
-    console.log('Player created and added to game');
 }
 
 /**
@@ -466,5 +522,6 @@ function addGameUI() {
 
 /**
  * 页面加载完成后初始化游戏
+ * 注意：这里不直接调用initGame，而是等待index.html中的调用
  */
-document.addEventListener('DOMContentLoaded', initGame);
+// document.addEventListener('DOMContentLoaded', initGame); // 注释掉，避免重复初始化

@@ -3,78 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>简单测试</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>马里奥游戏 - 简化测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #87CEEB;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            background: #87CEEB;
+            margin: 20px auto;
+            display: block;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #E55A2B;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="game-header">
-            <h1>马里奥游戏</h1>
-            <div class="game-info">
-                <span id="score">分数: 0</span>
-                <span id="lives">生命: 3</span>
-            </div>
-        </div>
+    <div class="container">
+        <h1>🎮 马里奥游戏 - 简化测试</h1>
+        
+        <div class="status" id="status">状态: 准备中...</div>
         
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
-        <div class="game-controls">
-            <p>控制说明：</p>
-            <p>← → 方向键移动，空格键或↑跳跃</p>
-        </div>
-        
-        <div class="game-menu" id="gameMenu">
-            <h2>开始游戏</h2>
-            <button id="startButton">开始</button>
-            <button id="pauseButton" style="display: none;">暂停</button>
+        <div>
+            <button id="startBtn">🚀 开始游戏</button>
+            <button id="testBtn">🧪 测试渲染</button>
         </div>
     </div>
-    
+
+    <!-- 加载游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+
     <script>
-        console.log('脚本开始加载...');
-        
-        // 简单的按钮测试
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM加载完成');
+        function updateStatus(message) {
+            document.getElementById('status').textContent = '状态: ' + message;
+            console.log('状态:', message);
+        }
+
+        // 测试渲染按钮
+        document.getElementById('testBtn').addEventListener('click', function() {
+            updateStatus('测试渲染...');
             
-            const startButton = document.getElementById('startButton');
-            const gameMenu = document.getElementById('gameMenu');
             const canvas = document.getElementById('gameCanvas');
-            const context = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d');
             
-            console.log('startButton:', startButton);
-            console.log('gameMenu:', gameMenu);
-            console.log('canvas:', canvas);
+            // 清空画布
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            if (startButton) {
-                startButton.addEventListener('click', function() {
-                    console.log('开始按钮被点击了！');
-                    alert('开始按钮工作正常！');
-                    
-                    // 隐藏菜单
-                    if (gameMenu) {
-                        gameMenu.style.display = 'none';
-                    }
-                    
-                    // 在Canvas上绘制一些内容
-                    if (context) {
-                        context.fillStyle = '#87CEEB';
-                        context.fillRect(0, 0, canvas.width, canvas.height);
-                        
-                        context.fillStyle = '#FF6B35';
-                        context.font = 'bold 48px Arial';
-                        context.textAlign = 'center';
-                        context.fillText('游戏开始了！', canvas.width / 2, canvas.height / 2);
-                    }
-                });
+            // 绘制一些测试图形
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(100, 100, 50, 50);
+            
+            ctx.fillStyle = '#00FF00';
+            ctx.fillRect(200, 200, 50, 50);
+            
+            ctx.fillStyle = '#0000FF';
+            ctx.fillRect(300, 300, 50, 50);
+            
+            // 绘制文字
+            ctx.fillStyle = '#333';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('渲染测试成功！', canvas.width / 2, 50);
+            
+            updateStatus('渲染测试完成');
+        });
+
+        // 开始游戏按钮
+        document.getElementById('startBtn').addEventListener('click', function() {
+            updateStatus('启动游戏...');
+            
+            try {
+                // 检查关键组件
+                if (typeof initGame !== 'function') {
+                    throw new Error('initGame 函数未找到');
+                }
                 
-                console.log('按钮事件监听器已添加');
-            } else {
-                console.error('找不到开始按钮！');
+                if (typeof GameEngine !== 'function') {
+                    throw new Error('GameEngine 类未找到');
+                }
+                
+                if (typeof GameStateManager !== 'function') {
+                    throw new Error('GameStateManager 类未找到');
+                }
+                
+                // 初始化游戏
+                initGame();
+                updateStatus('游戏初始化完成');
+                
+                // 检查游戏引擎
+                if (window.gameEngine) {
+                    updateStatus('游戏引擎已创建');
+                    
+                    // 尝试启动游戏
+                    if (window.gameStateManager) {
+                        window.gameStateManager.startGame();
+                        updateStatus('游戏已启动！');
+                    } else {
+                        updateStatus('状态管理器未找到');
+                    }
+                } else {
+                    updateStatus('游戏引擎创建失败');
+                }
+                
+            } catch (error) {
+                updateStatus('错误: ' + error.message);
+                console.error('启动错误:', error);
             }
         });
-        
-        console.log('脚本加载完成');
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('页面加载完成');
+            
+            // 检查Canvas
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 绘制初始内容
+                    ctx.fillStyle = '#87CEEB';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    ctx.fillStyle = '#333';
+                    ctx.font = '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('游戏准备就绪', canvas.width / 2, canvas.height / 2 - 20);
+                    ctx.fillText('点击"开始游戏"按钮', canvas.width / 2, canvas.height / 2 + 10);
+                    
+                    updateStatus('Canvas 初始化完成');
+                } else {
+                    updateStatus('Canvas 2D上下文创建失败');
+                }
+            } else {
+                updateStatus('Canvas 元素未找到');
+            }
+        });
+
+        // 监听错误
+        window.addEventListener('error', function(event) {
+            updateStatus('页面错误: ' + event.error.message);
+            console.error('页面错误:', event.error);
+        });
     </script>
 </body>
 </html>

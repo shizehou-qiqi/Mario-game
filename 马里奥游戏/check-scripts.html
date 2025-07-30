@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>检查脚本加载</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .script-check {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #ccc;
+        }
+        .success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+        .error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 脚本加载检查</h1>
+        
+        <button onclick="checkAllScripts()">🔄 重新检查</button>
+        <button onclick="loadGame()">🚀 尝试加载游戏</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const scripts = [
+            { name: 'vector2d.js', class: 'Vector2D' },
+            { name: 'physics.js', class: 'Physics' },
+            { name: 'spriteManager.js', class: 'SpriteManager' },
+            { name: 'gameObject.js', class: 'GameObject' },
+            { name: 'eventManager.js', class: 'EventManager' },
+            { name: 'audioManager.js', class: 'AudioManager' },
+            { name: 'particleSystem.js', class: 'ParticleSystem' },
+            { name: 'inputManager.js', class: 'InputManager' },
+            { name: 'platform.js', class: 'Platform' },
+            { name: 'enemy.js', class: 'Enemy' },
+            { name: 'collectible.js', class: 'Collectible' },
+            { name: 'level.js', class: 'Level' },
+            { name: 'scoreManager.js', class: 'ScoreManager' },
+            { name: 'hudManager.js', class: 'HUDManager' },
+            { name: 'player.js', class: 'Player' },
+            { name: 'gameEngine.js', class: 'GameEngine' },
+            { name: 'gameStateManager.js', class: 'GameStateManager' },
+            { name: 'main.js', function: 'initGame' }
+        ];
+
+        function checkAllScripts() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h2>检查结果：</h2>';
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            scripts.forEach(script => {
+                const div = document.createElement('div');
+                div.className = 'script-check';
+                
+                let isLoaded = false;
+                let message = '';
+                
+                if (script.class) {
+                    isLoaded = typeof window[script.class] !== 'undefined';
+                    message = isLoaded ? 
+                        `✅ ${script.name} - ${script.class} 类已加载` : 
+                        `❌ ${script.name} - ${script.class} 类未找到`;
+                } else if (script.function) {
+                    isLoaded = typeof window[script.function] !== 'undefined';
+                    message = isLoaded ? 
+                        `✅ ${script.name} - ${script.function} 函数已加载` : 
+                        `❌ ${script.name} - ${script.function} 函数未找到`;
+                }
+                
+                if (isLoaded) {
+                    div.classList.add('success');
+                    successCount++;
+                } else {
+                    div.classList.add('error');
+                    errorCount++;
+                }
+                
+                div.textContent = message;
+                resultsDiv.appendChild(div);
+            });
+            
+            // 总结
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'script-check';
+            summaryDiv.classList.add(errorCount === 0 ? 'success' : 'warning');
+            summaryDiv.textContent = `📊 总结: ${successCount} 个成功, ${errorCount} 个失败`;
+            resultsDiv.appendChild(summaryDiv);
+            
+            // 检查关键依赖
+            checkDependencies();
+        }
+        
+        function checkDependencies() {
+            const resultsDiv = document.getElementById('results');
+            
+            // 检查Vector2D依赖
+            if (typeof Vector2D === 'undefined') {
+                const div = document.createElement('div');
+                div.className = 'script-check error';
+                div.textContent = '⚠️ 关键错误: Vector2D 未定义，这会导致所有依赖它的类失败';
+                resultsDiv.appendChild(div);
+            }
+            
+            // 检查GameObject依赖
+            if (typeof GameObject === 'undefined') {
+                const div = document.createElement('div');
+                div.className = 'script-check error';
+                div.textContent = '⚠️ 关键错误: GameObject 未定义，这会导致所有游戏对象类失败';
+                resultsDiv.appendChild(div);
+            }
+            
+            // 检查GameEngine依赖
+            if (typeof GameEngine === 'undefined') {
+                const div = document.createElement('div');
+                div.className = 'script-check error';
+                div.textContent = '⚠️ 关键错误: GameEngine 未定义，游戏无法启动';
+                resultsDiv.appendChild(div);
+            }
+        }
+        
+        function loadGame() {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'script-check';
+            
+            try {
+                if (typeof initGame === 'function') {
+                    div.classList.add('success');
+                    div.textContent = '🚀 尝试调用 initGame()...';
+                    resultsDiv.appendChild(div);
+                    
+                    initGame();
+                    
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'script-check success';
+                    successDiv.textContent = '✅ initGame() 调用成功';
+                    resultsDiv.appendChild(successDiv);
+                    
+                    // 检查全局变量
+                    checkGlobalVariables();
+                    
+                } else {
+                    div.classList.add('error');
+                    div.textContent = '❌ initGame 函数未找到';
+                    resultsDiv.appendChild(div);
+                }
+            } catch (error) {
+                div.classList.add('error');
+                div.textContent = `❌ initGame() 调用失败: ${error.message}`;
+                resultsDiv.appendChild(div);
+                console.error('initGame error:', error);
+            }
+        }
+        
+        function checkGlobalVariables() {
+            const resultsDiv = document.getElementById('results');
+            const globals = [
+                { name: 'gameEngine', description: '游戏引擎' },
+                { name: 'gameStateManager', description: '状态管理器' },
+                { name: 'player', description: '玩家对象' },
+                { name: 'currentLevel', description: '当前关卡' },
+                { name: 'scoreManager', description: '分数管理器' }
+            ];
+            
+            globals.forEach(global => {
+                const div = document.createElement('div');
+                div.className = 'script-check';
+                
+                if (window[global.name]) {
+                    div.classList.add('success');
+                    div.textContent = `✅ ${global.name} (${global.description}) 已创建`;
+                } else {
+                    div.classList.add('warning');
+                    div.textContent = `⚠️ ${global.name} (${global.description}) 未创建`;
+                }
+                
+                resultsDiv.appendChild(div);
+            });
+        }
+        
+        // 页面加载完成后自动检查
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAllScripts();
+        });
+        
+        // 监听脚本加载错误
+        window.addEventListener('error', function(event) {
+            if (event.target && event.target.tagName === 'SCRIPT') {
+                const div = document.createElement('div');
+                div.className = 'script-check error';
+                div.textContent = `❌ 脚本加载失败: ${event.target.src}`;
+                document.getElementById('results').appendChild(div);
+            }
+        });
+    </script>
+
+    <!-- 加载所有脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

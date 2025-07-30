@@ -1,4 +1,53 @@
 /**
+ * GameInfoDisplay类 - 游戏信息显示对象
+ */
+class GameInfoDisplay extends GameObject {
+    constructor() {
+        super(10, 10, 300, 120);
+        this.tag = 'GameInfoDisplay';
+        this.collisionEnabled = false;
+        this.useGravity = false;
+    }
+    
+    onRender(context, interpolation) {
+        // 保存上下文并重置变换（使UI固定在屏幕上）
+        context.save();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // 显示控制说明
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(10, 10, 280, 110);
+        
+        context.fillStyle = '#FFFFFF';
+        context.font = '14px Arial';
+        context.textAlign = 'left';
+        context.fillText('控制说明:', 20, 30);
+        context.fillText('← → 移动', 20, 50);
+        context.fillText('空格键 跳跃', 20, 65);
+        context.fillText('ESC 暂停', 20, 80);
+        
+        // 显示玩家状态（如果玩家存在）
+        if (window.player) {
+            const status = window.player.getStatus();
+            context.fillStyle = '#CCCCCC';
+            context.font = '12px Arial';
+            context.fillText(`位置: (${Math.round(status.position.x)}, ${Math.round(status.position.y)})`, 20, 100);
+            context.fillText(`状态: ${status.animationState}`, 20, 115);
+        }
+        
+        // 显示关卡信息
+        if (window.currentLevel) {
+            const levelInfo = window.currentLevel.getLevelInfo();
+            context.fillStyle = '#FFFF00';
+            context.fillText(`关卡: ${levelInfo.platformCount} 平台`, 150, 100);
+            context.fillText(`尺寸: ${levelInfo.width}x${levelInfo.height}`, 150, 115);
+        }
+        
+        context.restore();
+    }
+}
+
+/**
  * 马里奥游戏主入口文件
  * 负责初始化游戏和管理游戏状态
  */
@@ -465,53 +514,6 @@ function createHUD() {
  * 添加游戏UI显示对象
  */
 function addGameUI() {
-    // 创建游戏信息显示对象（固定在屏幕上，不受相机影响）
-    class GameInfoDisplay extends GameObject {
-        constructor() {
-            super(10, 10, 300, 120);
-            this.tag = 'GameInfoDisplay';
-            this.collisionEnabled = false;
-            this.useGravity = false;
-        }
-        
-        onRender(context, interpolation) {
-            // 保存上下文并重置变换（使UI固定在屏幕上）
-            context.save();
-            context.setTransform(1, 0, 0, 1, 0, 0);
-            
-            // 显示控制说明
-            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            context.fillRect(10, 10, 280, 110);
-            
-            context.fillStyle = '#FFFFFF';
-            context.font = '14px Arial';
-            context.textAlign = 'left';
-            context.fillText('控制说明:', 20, 30);
-            context.fillText('← → 移动', 20, 50);
-            context.fillText('空格键 跳跃', 20, 65);
-            context.fillText('ESC 暂停', 20, 80);
-            
-            // 显示玩家状态（如果玩家存在）
-            if (player) {
-                const status = player.getStatus();
-                context.fillStyle = '#CCCCCC';
-                context.font = '12px Arial';
-                context.fillText(`位置: (${Math.round(status.position.x)}, ${Math.round(status.position.y)})`, 20, 100);
-                context.fillText(`状态: ${status.animationState}`, 20, 115);
-            }
-            
-            // 显示关卡信息
-            if (currentLevel) {
-                const levelInfo = currentLevel.getLevelInfo();
-                context.fillStyle = '#FFFF00';
-                context.fillText(`关卡: ${levelInfo.platformCount} 平台`, 150, 100);
-                context.fillText(`尺寸: ${levelInfo.width}x${levelInfo.height}`, 150, 115);
-            }
-            
-            context.restore();
-        }
-    }
-    
     const gameInfo = new GameInfoDisplay();
     gameEngine.addGameObject(gameInfo);
     

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马里奥游戏 - 最终测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #87CEEB;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #gameCanvas {
+            border: 3px solid #333;
+            background: #87CEEB;
+            margin: 20px auto;
+            display: block;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #E55A2B;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-family: monospace;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+        .game-info h1 {
+            color: #FF6B35;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .game-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-info">
+            <h1>🎮 马里奥游戏</h1>
+            <div class="game-stats">
+                <span id="score">分数: 0</span>
+                <span id="lives">生命: 3</span>
+            </div>
+        </div>
+        
+        <div class="status" id="status">状态: 准备中...</div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="controls">
+            <button id="startBtn">🚀 开始游戏</button>
+            <button id="pauseBtn">⏸️ 暂停</button>
+            <button id="resetBtn">🔄 重置</button>
+            <button id="debugBtn">🐛 调试信息</button>
+        </div>
+        
+        <div class="status" id="debugInfo">调试信息将在这里显示...</div>
+    </div>
+
+    <!-- 加载游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        let gameInitialized = false;
+        let debugMode = false;
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = '状态: ' + message;
+            statusDiv.className = 'status ' + type;
+            console.log('状态:', message);
+        }
+
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debugInfo');
+            if (!window.gameEngine) {
+                debugDiv.textContent = '游戏引擎未初始化';
+                return;
+            }
+
+            const info = [
+                `游戏引擎: ${window.gameEngine.isRunning ? '✅ 运行中' : '❌ 已停止'}`,
+                `FPS: ${window.gameEngine.getFPS()}`,
+                `游戏对象: ${window.gameEngine.gameObjects.length}`,
+                `帧数: ${window.gameEngine.frameCount}`,
+                `状态管理器: ${window.gameStateManager ? window.gameStateManager.getCurrentState() : '未初始化'}`,
+                `玩家: ${window.player ? '✅ 已创建' : '❌ 未创建'}`,
+                `关卡: ${window.currentLevel ? '✅ 已加载' : '❌ 未加载'}`
+            ];
+
+            debugDiv.innerHTML = info.join('<br>');
+        }
+
+        // 开始游戏按钮
+        document.getElementById('startBtn').addEventListener('click', function() {
+            if (!gameInitialized) {
+                updateStatus('初始化游戏...', 'warning');
+                
+                try {
+                    initGame();
+                    gameInitialized = true;
+                    updateStatus('游戏初始化完成', 'success');
+                } catch (error) {
+                    updateStatus('初始化失败: ' + error.message, 'error');
+                    console.error('初始化错误:', error);
+                    return;
+                }
+            }
+
+            updateStatus('启动游戏...', 'warning');
+            
+            try {
+                if (window.gameStateManager) {
+                    window.gameStateManager.startGame();
+                    updateStatus('游戏已启动！', 'success');
+                } else {
+                    updateStatus('状态管理器未找到', 'error');
+                }
+            } catch (error) {
+                updateStatus('启动失败: ' + error.message, 'error');
+                console.error('启动错误:', error);
+            }
+        });
+
+        // 暂停按钮
+        document.getElementById('pauseBtn').addEventListener('click', function() {
+            if (window.gameStateManager) {
+                if (window.gameStateManager.getCurrentState() === 'playing') {
+                    window.gameStateManager.pauseGame();
+                    updateStatus('游戏已暂停', 'warning');
+                } else if (window.gameStateManager.getCurrentState() === 'paused') {
+                    window.gameStateManager.resumeGame();
+                    updateStatus('游戏已恢复', 'success');
+                }
+            } else {
+                updateStatus('状态管理器未找到', 'error');
+            }
+        });
+
+        // 重置按钮
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            updateStatus('重置游戏...', 'warning');
+            
+            try {
+                if (window.gameStateManager) {
+                    window.gameStateManager.restartGame();
+                    updateStatus('游戏已重置', 'success');
+                } else {
+                    updateStatus('状态管理器未找到', 'error');
+                }
+            } catch (error) {
+                updateStatus('重置失败: ' + error.message, 'error');
+                console.error('重置错误:', error);
+            }
+        });
+
+        // 调试按钮
+        document.getElementById('debugBtn').addEventListener('click', function() {
+            debugMode = !debugMode;
+            updateStatus(debugMode ? '调试模式开启' : '调试模式关闭', debugMode ? 'warning' : 'info');
+            
+            if (debugMode && window.gameEngine) {
+                console.log('游戏引擎状态:', window.gameEngine);
+                console.log('游戏对象:', window.gameEngine.gameObjects);
+            }
+        });
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('页面加载完成', 'success');
+            
+            // 检查Canvas
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 绘制初始内容
+                    ctx.fillStyle = '#87CEEB';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    ctx.fillStyle = '#333';
+                    ctx.font = '24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('马里奥游戏', canvas.width / 2, canvas.height / 2 - 40);
+                    ctx.fillText('点击"开始游戏"按钮开始', canvas.width / 2, canvas.height / 2);
+                    ctx.fillText('使用方向键移动，空格键跳跃', canvas.width / 2, canvas.height / 2 + 30);
+                    
+                    updateStatus('Canvas 初始化完成', 'success');
+                } else {
+                    updateStatus('Canvas 2D上下文创建失败', 'error');
+                }
+            } else {
+                updateStatus('Canvas 元素未找到', 'error');
+            }
+        });
+
+        // 定期更新调试信息
+        setInterval(updateDebugInfo, 1000);
+
+        // 监听错误
+        window.addEventListener('error', function(event) {
+            updateStatus('页面错误: ' + event.error.message, 'error');
+            console.error('页面错误:', event.error);
+        });
+
+        // 监听未处理的Promise拒绝
+        window.addEventListener('unhandledrejection', function(event) {
+            updateStatus('Promise错误: ' + event.reason, 'error');
+            console.error('Promise错误:', event.reason);
+        });
+
+        // 键盘事件处理
+        document.addEventListener('keydown', function(event) {
+            if (debugMode) {
+                console.log('按键:', event.code);
+            }
+            
+            // 防止方向键滚动页面
+            if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(event.code) > -1) {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

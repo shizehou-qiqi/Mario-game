@@ -1,4 +1,70 @@
 /**
+ * BackgroundDecoration类 - 背景装饰对象
+ */
+class BackgroundDecoration extends GameObject {
+    constructor() {
+        super(0, 0, 3200, 600);
+        this.tag = 'Background';
+        this.collisionEnabled = false;
+        this.useGravity = false;
+    }
+    
+    onRender(context, interpolation) {
+        // 绘制天空背景渐变
+        const gradient = context.createLinearGradient(0, -this.size.y / 2, 0, this.size.y / 2);
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(0.7, '#98FB98');
+        gradient.addColorStop(1, '#90EE90');
+        context.fillStyle = gradient;
+        context.fillRect(-this.size.x / 2, -this.size.y / 2, this.size.x, this.size.y);
+        
+        // 绘制远山
+        context.fillStyle = '#8FBC8F';
+        context.beginPath();
+        context.moveTo(-this.size.x / 2, this.size.y / 2 - 200);
+        for (let i = 0; i < this.size.x; i += 100) {
+            const height = 150 + Math.sin(i * 0.01) * 50;
+            context.lineTo(-this.size.x / 2 + i, this.size.y / 2 - height);
+        }
+        context.lineTo(this.size.x / 2, this.size.y / 2);
+        context.lineTo(-this.size.x / 2, this.size.y / 2);
+        context.fill();
+        
+        // 绘制云朵
+        this.drawClouds(context);
+    }
+    
+    drawClouds(context) {
+        context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        
+        const clouds = [
+            { x: 200, y: 100, size: 30 },
+            { x: 600, y: 80, size: 40 },
+            { x: 1000, y: 120, size: 35 },
+            { x: 1400, y: 90, size: 45 },
+            { x: 1800, y: 110, size: 30 },
+            { x: 2200, y: 70, size: 50 },
+            { x: 2600, y: 100, size: 35 },
+            { x: 3000, y: 85, size: 40 }
+        ];
+        
+        for (const cloud of clouds) {
+            this.drawCloud(context, cloud.x - this.size.x / 2, cloud.y - this.size.y / 2, cloud.size);
+        }
+    }
+    
+    drawCloud(context, x, y, size) {
+        context.beginPath();
+        context.arc(x, y, size, 0, Math.PI * 2);
+        context.arc(x + size * 0.6, y, size * 0.8, 0, Math.PI * 2);
+        context.arc(x + size * 1.2, y, size * 0.7, 0, Math.PI * 2);
+        context.arc(x + size * 0.3, y - size * 0.5, size * 0.6, 0, Math.PI * 2);
+        context.arc(x + size * 0.9, y - size * 0.4, size * 0.5, 0, Math.PI * 2);
+        context.fill();
+    }
+}
+
+/**
  * Level类 - 关卡管理系统
  * 负责加载关卡数据、管理关卡对象和相机系统
  */
@@ -257,69 +323,6 @@ class Level {
      */
     spawnDecorations() {
         // 创建背景装饰对象
-        class BackgroundDecoration extends GameObject {
-            constructor() {
-                super(0, 0, 3200, 600);
-                this.tag = 'Background';
-                this.collisionEnabled = false;
-                this.useGravity = false;
-            }
-            
-            onRender(context, interpolation) {
-                // 绘制天空背景渐变
-                const gradient = context.createLinearGradient(0, -this.size.y / 2, 0, this.size.y / 2);
-                gradient.addColorStop(0, '#87CEEB');
-                gradient.addColorStop(0.7, '#98FB98');
-                gradient.addColorStop(1, '#90EE90');
-                context.fillStyle = gradient;
-                context.fillRect(-this.size.x / 2, -this.size.y / 2, this.size.x, this.size.y);
-                
-                // 绘制远山
-                context.fillStyle = '#8FBC8F';
-                context.beginPath();
-                context.moveTo(-this.size.x / 2, this.size.y / 2 - 200);
-                for (let i = 0; i < this.size.x; i += 100) {
-                    const height = 150 + Math.sin(i * 0.01) * 50;
-                    context.lineTo(-this.size.x / 2 + i, this.size.y / 2 - height);
-                }
-                context.lineTo(this.size.x / 2, this.size.y / 2);
-                context.lineTo(-this.size.x / 2, this.size.y / 2);
-                context.fill();
-                
-                // 绘制云朵
-                this.drawClouds(context);
-            }
-            
-            drawClouds(context) {
-                context.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                
-                const clouds = [
-                    { x: 200, y: 100, size: 30 },
-                    { x: 600, y: 80, size: 40 },
-                    { x: 1000, y: 120, size: 35 },
-                    { x: 1400, y: 90, size: 45 },
-                    { x: 1800, y: 110, size: 30 },
-                    { x: 2200, y: 70, size: 50 },
-                    { x: 2600, y: 100, size: 35 },
-                    { x: 3000, y: 85, size: 40 }
-                ];
-                
-                for (const cloud of clouds) {
-                    this.drawCloud(context, cloud.x - this.size.x / 2, cloud.y - this.size.y / 2, cloud.size);
-                }
-            }
-            
-            drawCloud(context, x, y, size) {
-                context.beginPath();
-                context.arc(x, y, size, 0, Math.PI * 2);
-                context.arc(x + size * 0.6, y, size * 0.8, 0, Math.PI * 2);
-                context.arc(x + size * 1.2, y, size * 0.7, 0, Math.PI * 2);
-                context.arc(x + size * 0.3, y - size * 0.5, size * 0.6, 0, Math.PI * 2);
-                context.arc(x + size * 0.9, y - size * 0.4, size * 0.5, 0, Math.PI * 2);
-                context.fill();
-            }
-        }
-        
         const background = new BackgroundDecoration();
         this.decorations.push(background);
         this.allObjects.push(background);

@@ -244,6 +244,18 @@ class GameEngine {
 
         // 记录渲染时间
         this.performanceStats.renderTime = performance.now() - renderStartTime;
+        
+        // 调试：显示游戏对象数量
+        if (this.gameObjects.length > 0) {
+            this.context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            this.context.fillRect(10, 10, 200, 60);
+            this.context.fillStyle = '#FFFFFF';
+            this.context.font = '12px Arial';
+            this.context.textAlign = 'left';
+            this.context.fillText(`游戏对象: ${this.gameObjects.length}`, 15, 25);
+            this.context.fillText(`FPS: ${this.currentFPS}`, 15, 40);
+            this.context.fillText(`状态: ${this.isRunning ? '运行中' : '已停止'}`, 15, 55);
+        }
     }
     
     /**

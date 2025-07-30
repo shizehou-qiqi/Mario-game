@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马里奥游戏 - 修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #87CEEB;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            background: #87CEEB;
+            margin: 20px auto;
+            display: block;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #E55A2B;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 马里奥游戏 - 修复测试</h1>
+        
+        <div class="status" id="status">
+            状态: 准备中...
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="controls">
+            <button id="startBtn">🚀 开始游戏</button>
+            <button id="stopBtn">⏹️ 停止游戏</button>
+            <button id="debugBtn">🐛 调试信息</button>
+        </div>
+        
+        <div class="status" id="debugInfo">
+            调试信息将在这里显示...
+        </div>
+    </div>
+
+    <!-- 加载游戏脚本 -->
+    <script src="js/vector2d.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/spriteManager.js"></script>
+    <script src="js/gameObject.js"></script>
+    <script src="js/eventManager.js"></script>
+    <script src="js/audioManager.js"></script>
+    <script src="js/particleSystem.js"></script>
+    <script src="js/inputManager.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/collectible.js"></script>
+    <script src="js/level.js"></script>
+    <script src="js/scoreManager.js"></script>
+    <script src="js/hudManager.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/gameEngine.js"></script>
+    <script src="js/gameStateManager.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        // 测试脚本
+        let gameEngine = null;
+        let gameStateManager = null;
+        let debugMode = false;
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = '状态: ' + message;
+            console.log('状态更新:', message);
+        }
+
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debugInfo');
+            if (!gameEngine) {
+                debugDiv.textContent = '游戏引擎未初始化';
+                return;
+            }
+
+            const info = [
+                `游戏引擎: ${gameEngine.isRunning ? '运行中' : '已停止'}`,
+                `FPS: ${gameEngine.getFPS()}`,
+                `游戏对象: ${gameEngine.gameObjects.length}`,
+                `帧数: ${gameEngine.frameCount}`,
+                `状态管理器: ${gameStateManager ? gameStateManager.getCurrentState() : '未初始化'}`
+            ];
+
+            debugDiv.innerHTML = info.join('<br>');
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('页面加载完成，初始化游戏...');
+
+            try {
+                // 初始化游戏
+                initGame();
+                
+                // 获取游戏引擎和状态管理器
+                gameEngine = window.gameEngine;
+                gameStateManager = window.gameStateManager;
+                
+                updateStatus('游戏初始化完成');
+                
+                // 在Canvas上绘制初始内容
+                const canvas = document.getElementById('gameCanvas');
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#333';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('游戏已初始化！', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillText('点击"开始游戏"按钮开始', canvas.width / 2, canvas.height / 2 + 10);
+                
+            } catch (error) {
+                updateStatus('初始化失败: ' + error.message);
+                console.error('初始化错误:', error);
+            }
+        });
+
+        // 开始游戏按钮
+        document.getElementById('startBtn').addEventListener('click', function() {
+            updateStatus('启动游戏...');
+            
+            try {
+                if (gameStateManager) {
+                    gameStateManager.startGame();
+                    updateStatus('游戏已启动');
+                } else {
+                    updateStatus('状态管理器未找到');
+                }
+            } catch (error) {
+                updateStatus('启动失败: ' + error.message);
+                console.error('启动错误:', error);
+            }
+        });
+
+        // 停止游戏按钮
+        document.getElementById('stopBtn').addEventListener('click', function() {
+            updateStatus('停止游戏...');
+            
+            try {
+                if (gameEngine) {
+                    gameEngine.stop();
+                    updateStatus('游戏已停止');
+                } else {
+                    updateStatus('游戏引擎未找到');
+                }
+            } catch (error) {
+                updateStatus('停止失败: ' + error.message);
+                console.error('停止错误:', error);
+            }
+        });
+
+        // 调试按钮
+        document.getElementById('debugBtn').addEventListener('click', function() {
+            debugMode = !debugMode;
+            updateStatus(debugMode ? '调试模式开启' : '调试模式关闭');
+            
+            if (gameEngine) {
+                // 这里可以添加更多调试功能
+                console.log('游戏引擎状态:', gameEngine);
+                console.log('游戏对象:', gameEngine.gameObjects);
+            }
+        });
+
+        // 定期更新调试信息
+        setInterval(updateDebugInfo, 1000);
+
+        // 监听错误
+        window.addEventListener('error', function(event) {
+            updateStatus('错误: ' + event.error.message);
+            console.error('页面错误:', event.error);
+        });
+    </script>
+</body>
+</html>

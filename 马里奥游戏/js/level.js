@@ -422,19 +422,25 @@ class Level {
      * @param {number} interpolation - 插值因子
      */
     render(context, interpolation = 0) {
-        if (!this.isLoaded) return;
+        if (!this.isLoaded) {
+            console.warn('⚠️ 关卡未加载，跳过渲染');
+            return;
+        }
 
         // 应用相机变换
         context.save();
         this.applyCameraTransform(context);
 
         // 渲染所有关卡对象
+        let renderedCount = 0;
         for (const obj of this.allObjects) {
-            if (obj && obj.render && obj.visible && !obj.destroyed) {
-                // 🔧 临时禁用视锥剔除来调试渲染问题
-                // if (this.isObjectInCameraView(obj)) {
+            if (obj && obj.render && obj.visible !== false && !obj.destroyed) {
+                try {
                     obj.render(context, interpolation);
-                // }
+                    renderedCount++;
+                } catch (error) {
+                    console.error('❌ 渲染对象时出错:', error, obj);
+                }
             }
         }
 
